@@ -1,4 +1,4 @@
-<div class="wrap">
+<div class="wrap">    
     <h2><img src="<?php echo EASYLING_URL ?>/images/easyling-logo.png" alt="Easyling Wordpress Plugin" /></h2>    
     <div class="metabox-holder">        
         <form action="options.php" method="post" id="easyling_setting_form" name="easyling_setting_form">            
@@ -183,9 +183,60 @@
             jQuery(document).ready(function(){
                 jQuery('#modal-consent').modal({
                     minHeight: 360,
-                    minWidth: 400
+                    minWidth: 400,
+                    escClose: false,
+                    overlayClose: false,
+                    closeClass: 'simplemodal-close-hidden'
                 });
             })    
 <?php endif; ?>
     })
 </script>
+
+<?php
+$option = get_option('easyling');
+if ($consent !== null && !$option['tutorial_shown']):
+?>
+<div id="modal-tutorial" class="modal-content">        
+    <div class="tutorial" style="background-image: url(<?php echo EASYLING_URL; ?>/images/tutorial.jpg);" >                    
+        <div class="nav-left"><img src="<?php echo EASYLING_URL ?>/images/left.png" /></div>
+        <div class="nav-right"><img src="<?php echo EASYLING_URL ?>/images/right.png" /></div>
+    </div>
+</div>
+<script type="text/javascript">
+    jQuery(document).ready(function(){
+        jQuery('#modal-tutorial').modal({
+            minHeight: 630,
+            minWidth: 875,
+            containerCss: {
+                'padding': '0px',
+                'background-color' : 'black'                                
+            }
+        });
+        
+        jQuery("#modal-tutorial .nav-left").click(function(){
+            var el = jQuery("#modal-tutorial .tutorial");
+            var bgpos = parseInt(el.css('background-position-x'));                             
+            if(bgpos < 40) {
+                jQuery("#modal-tutorial .tutorial").animate({
+                    'background-position-x': '+=775'
+                }, 500);   
+            }
+        });
+        jQuery("#modal-tutorial .nav-right").click(function(){            
+            var el = jQuery("#modal-tutorial .tutorial");
+            var bgpos = parseInt(el.css('background-position-x'));                                   
+            if(bgpos > -3060){
+                jQuery("#modal-tutorial .tutorial").animate({
+                    'background-position-x': '-=775'
+                }, 500);            
+            }
+        });    
+        
+    })
+</script>
+<?php
+    $option['tutorial_shown'] = true;
+    update_option('easyling', $option);
+endif;
+?>

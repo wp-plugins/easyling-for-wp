@@ -7,7 +7,7 @@ $option = get_option('easyling');
 if (!$option['popup_shown']):
     ?>
     <div id="modal-info" class="modal-content">
-        <h3>Thank you for using Easyling!</h3>
+        <h3>Thank you for using Easyling!</h3>        
         <p>In order to be able to use the Plugin you will need</p>
         <ul>
             <li>an active Easyling.com account</li>

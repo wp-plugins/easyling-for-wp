@@ -3,7 +3,7 @@
 /*
   Plugin Name: Easyling for Wordpress
   Description: Easyling is a Website translation tool, suitable for DIY work; or order the professional translation service from  www.easyling.com.
-  Version: 0.9.1
+  Version: 0.9.2
   Plugin URI: http://easyling.com
  */
 
@@ -272,7 +272,7 @@ if (!class_exists('Easyling')) {
                 $linked_project_languages = get_option('easyling_project_languages');
                 foreach ($linked_project_languages as $locale => $settings) {
                     if ($settings['used'] != 'on')
-                        break;
+                        continue;
                     if ($settings['lngcode'] == $language) {
                         return $locale;
                     }
@@ -286,7 +286,7 @@ if (!class_exists('Easyling')) {
             $linked_project_languages = get_option('easyling_project_languages');
             foreach ($linked_project_languages as $locale => $settings) {
                 if ($settings['used'] != 'on')
-                    break;
+                    continue;
                 // transform the domain a bit
                 if (strspn($settings['domain'], 'htps:/', 0, 8) < 7) {
                     $settings['domain'] = 'http://' . $settings['domain'];
@@ -317,12 +317,12 @@ if (!class_exists('Easyling')) {
                 return array();
             foreach ($linked_project_languages as $locale => $settings) {
                 if ($settings['used'] != 'on')
-                    break;
+                    continue;
                 if (!$settings['lngcode'])
                     $available_languages[$locale] = $settings['domain'];
                 else
                     $available_languages[$locale] = $settings['lngcode'];
-            }
+            }            
             return $available_languages;
         }
 

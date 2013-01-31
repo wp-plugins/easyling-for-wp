@@ -80,7 +80,17 @@ and simply click `Retrieve Translations`. The process may take up to a few minut
 We would like to think so, however there could be certain edge cases when the working of the plugin is not 100%!
 Whenever we hear about such a case, we jump on it and give a fix.
 
+== Screenshots ==
+
+1. This screenshot displayes the configuration settings of Easyling for WP. Simple and straightforward.
+2. Demonstrates how to "link" the WP Installation with Easyling Services
+
 == Changelog ==
+
+= 0.9.2 =
+* Multiple improvements to the admin UI
+* Included 5 step tutorial on how to "link"
+* Some improvements to better the stability
 
 = 0.9.1 =
 * Easyling Plugin commited to the Wordpress Repo

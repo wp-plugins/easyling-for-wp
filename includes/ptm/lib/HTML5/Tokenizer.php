@@ -107,29 +107,39 @@ class HTML5_Tokenizer {
 		$this->asciiCPConversionEnabled = $enabled;
 	}
 
-	private function convertAsciiCPToUTF8($data)
+	public function convertAsciiCPToUTF8($data)
 	{
 		$convertedData = "";
-		$convChar = false;
+		$convChar = 0x00;
 		$dataLen = strlen($data);
 		for ($i=0;$i<$dataLen;$i++)
 		{
 			$chr = $data{$i};
 			$chVal = ord($chr);
-			if ($convChar)
+			if ($convChar != 0x00)
 			{
-				$convChar = false;
-				if ($chVal >= 0x80 && $chVal <= 0x9F) {
+				if ($convChar == 0xC2 && ($chVal >= 0x80 && $chVal <= 0x9F)) {
 					$convertedData .= HTML5_Data::utf8chr(HTML5_Data::getRealCodepoint($chVal));
 				}
 				else
-					$convertedData .= chr(0xC2) . $chr;
+					$convertedData .= chr($convChar) . $chr;
+
+				$convChar = 0x00;
 				continue;
 			}
-			if ($chVal == 0xC2 && $i<$dataLen-1) {
-				$convChar = true;
+			if (($chVal & 0xC2) == 0xC2) {
+				if ($i<$dataLen-1)
+					$convChar = $chVal;
+				else $convertedData .= $chr;
 			}
-			else $convertedData .= $chr;
+			// other utf-8 character, ignore them
+			else if (($chVal & 0xC0) == 0xC0) {
+				$len = strrpos(decbin($chVal & 0xFC), "0") - 1;
+				$convertedData .= substr($data, $i, $len);
+				$i += $len - 1;
+			}
+			else
+				$convertedData .= $chr;
 		}
 
 		return $convertedData;

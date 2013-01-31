@@ -158,7 +158,7 @@ class PTM
 	 * @param $htmlContent
 	 * @return \DOMDocument
 	 */
-	public function parseHTMLContent($htmlContent)
+	public function parseHTMLContent($htmlContent, $originalEncoding = "UTF-8")
 	{
 		// 1) replace unix line ending for easyling compatibility
 		// HTML5_InputStream do this
@@ -175,7 +175,7 @@ class PTM
 
 		// 4) create tokenizer
 		$tokenizer = new HTML5_Tokenizer($htmlContent, $treeBuilder);
-		$tokenizer->enableAsciiCPConversion(false);
+		$tokenizer->enableAsciiCPConversion(false);//strcasecmp($originalEncoding, "UTF-8") != 0);
 
 		// 5) parse HTML content
 		$tokenizer->parse();

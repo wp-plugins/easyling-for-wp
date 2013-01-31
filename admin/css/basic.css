@@ -21,3 +21,23 @@
 #simplemodal-container a.modalCloseImg {background:url(../../images/x.png) no-repeat; width:25px; height:29px; display:inline; z-index:3200; position:absolute; top:-15px; right:-16px; cursor:pointer;}
 #simplemodal-container h3 {color:#84b8d9;}
 #simplemodal-container ul li{ list-style-type: disc; margin-left: 20px;}
+#simplemodal-container .simplemodal-close-hidden{
+    display: none !important;
+}
+
+#simplemodal-container .tutorial {
+    background-repeat: no-repeat;
+    overflow: hidden;
+    background-position-x: 40px;
+}
+#simplemodal-container .nav-left, #simplemodal-container .nav-right {
+    height: 600px;
+    background-color: rgba(0,0,0,0.6);
+    float: left;
+    width: 40px;
+    cursor: pointer;  
+    line-height: 600px;
+}
+#simplemodal-container .nav-right {
+    float: right;
+}

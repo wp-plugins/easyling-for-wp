@@ -146,6 +146,18 @@ class HTML5_TreeBuilder {
 		$this->invalidAttributeNames = $invalidAttributeNames;
 	}
 
+	public function invalidCharConverter($m)
+	{
+		$chCode = strtoupper(dechex(ord($m[0])));
+		return sprintf("U%06s",$chCode);
+	}
+
+	public function cleanUpElementName($elementName)
+	{
+//		return $elementName;
+		return preg_replace_callback('/[^A-Z0-9_:.\-]/i', array($this, "invalidCharConverter"), $elementName);
+	}
+
     // Process tag tokens
     public function emitToken($token, $mode = null) {
         // XXX: ignore parse errors... why are we emitting them, again?
@@ -3071,10 +3083,14 @@ class HTML5_TreeBuilder {
 	    {
 		    // Atesz: if cannot add due to namespace error attribute, try to add without namespace
 		    if ((!$de instanceof DOMException && strpos($de->getMessage(),"Namespace Error") !== FALSE) ||
-			    ($de instanceof DOMException && $de->getCode() == DOM_NAMESPACE_ERR))
+			    ($de instanceof DOMException && $de->getCode() == DOM_NAMESPACE_ERR) && $this->unknownNSEnabled)
 		    {
-			    if ($this->unknownNSEnabled)
-				    $el = $this->dom->createElement($token['name']);
+			    $el = $this->dom->createElement($token['name']);
+		    }
+		    else if ((!$de instanceof DOMException && strpos($de->getMessage(),"Invalid Character Error") !== FALSE) ||
+			    ($de instanceof DOMException && $de->getCode() == DOM_INVALID_CHARACTER_ERR)) {
+			    $elementName = $this->cleanUpElementName($token['name']);
+			    $el = $this->dom->createElement($elementName);
 		    }
 		    if ($el === FALSE)
 			    assert("exception on createElement with name {$token['name']} : ".$de->getMessage());
