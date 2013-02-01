@@ -3,7 +3,7 @@ Contributors: dvarga
 Tags: easyling, translation, multilanguage
 Requires at least: 3.5
 Tested up to: 3.5
-Stable tag: trunk
+Stable tag: 0.9.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -86,6 +86,9 @@ Whenever we hear about such a case, we jump on it and give a fix.
 2. Demonstrates how to "link" the WP Installation with Easyling Services
 
 == Changelog ==
+
+= 0.9.3 =
+* Updated repo
 
 = 0.9.2 =
 * Multiple improvements to the admin UI
