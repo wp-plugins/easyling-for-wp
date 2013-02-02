@@ -9,8 +9,8 @@
 
 if (!class_exists('Easyling')) {
 
-    define('EASYLING_PATH', WP_PLUGIN_DIR . '/easyling');
-    define('EASYLING_URL', WP_PLUGIN_URL . '/easyling');
+    define('EASYLING_PATH', WP_PLUGIN_DIR . '/easyling-for-wp');
+    define('EASYLING_URL', WP_PLUGIN_URL . '/easyling-for-wp');
     define('EASYLING_VERSION', '0.1.1');
 
     require_once dirname(__FILE__) . "/includes/ptm/KeyValueStorage/FileStorage.php";
