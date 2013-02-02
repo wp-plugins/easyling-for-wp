@@ -6,3 +6,4 @@
  */
 
 define ('EASYLING_ENDPOINT', "http://akeszi.skawa-easyling.appspot.com/_el/ext/");
+

@@ -114,8 +114,10 @@ if (!class_exists('Easyling')) {
 
 	        // hooks
             if (!is_admin()) {
+                if($this->settings['status'] == self::STATUS_AUTHED){
                 // very low prio
                 add_action('parse_query', array($this, 'detect_language'), 9999);
+                }
                 // create a new OB with callback
                 add_action('init', array(&$this, 'init_ob_start'));
             }
@@ -143,7 +145,7 @@ if (!class_exists('Easyling')) {
 
             add_filter('query_vars', array(&$this, 'queryVars'));
 
-
+if($this->settings['status'] == self::STATUS_AUTHED){
             // check for multi domain support
             $multidomain = get_option('easyling_multidomain', false);
             if ($multidomain && $multidomain['status'] == 'on') {
@@ -167,6 +169,7 @@ if (!class_exists('Easyling')) {
                 require_once EASYLING_PATH . '/includes/Multidomain/Multidomain.php';
                 $this->multidomain = new MultiDomain($mdConfig);
             }
+}
         }
 
         public function filter_rewrite_rules_array($rules) {
@@ -284,7 +287,7 @@ if (!class_exists('Easyling')) {
         public function matchDomainToLocale() {
             $domain = $_SERVER['HTTP_HOST'];
             $linked_project_languages = get_option('easyling_project_languages');
-            foreach ($linked_project_languages as $locale => $settings) {
+                      foreach ($linked_project_languages as $locale => $settings) {
                 if ($settings['used'] != 'on')
                     continue;
                 // transform the domain a bit
@@ -368,13 +371,15 @@ if (!class_exists('Easyling')) {
                     continue;
                 }
                 $new_pattern = "($lang_pattern)" . $pattern;
-                $new_rewrite_rules[$new_pattern] = preg_replace_callback('/matches\[(\d*?)\]/', function($match) {
-                                    return 'matches[' . ($match[1] + 1) . ']';
-                                }, $rewrite_rule) . '&easyling=$matches[1]';
+                $new_rewrite_rules[$new_pattern] = preg_replace_callback('/matches\[(\d*?)\]/', array(&$this, "_preg_replace_callback"), $rewrite_rule) . '&easyling=$matches[1]';
             }
 //print_r($new_rewrite_rules);
             return $new_rewrite_rules;
 //		    return $rewrite_rules;
+        }
+        
+        public function _preg_replace_callback($match) {
+            return 'matches[' . ($match[1] + 1) . ']';
         }
 
         public function filter_links($permalink) {
