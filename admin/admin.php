@@ -1,6 +1,6 @@
 <?php
 
-include_once(WP_PLUGIN_DIR . '/easyling/config.php');
+include_once(WP_PLUGIN_DIR . '/easyling-for-wp/config.php');
 
 /**
  * Easyling_Admin class is responsible for rendering, displaying and managing
