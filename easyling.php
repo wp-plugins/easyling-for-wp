@@ -104,7 +104,7 @@ if (!class_exists('Easyling')) {
             }
 
             // plugin activation / deletion
-            $path = WP_PLUGIN_DIR . '/easyling/easyling.php';
+            $path = WP_PLUGIN_DIR . '/easyling-for-wp/easyling.php';
             register_activation_hook($path, array(&$this, 'activation_hook'));
             register_deactivation_hook($path, array(&$this, 'deactivation_hook'));
             register_uninstall_hook($path, array(&$this, 'uninstall_hook'));
@@ -454,9 +454,9 @@ if($this->settings['status'] == self::STATUS_AUTHED){
                 echo '<div style="font-family: Arial; font-size: 12px;">The Easyling Plugin terminated the activation because the PHP installation misses the following extensions:<br />';
                 echo '<ul>';
                 echo extension_loaded('openssl') ? '' : '<li>openssl</li>';
-                echo extension_loaded('curl') ? '' : '<li>openssl</li>';
-                echo extension_loaded('iconv') ? '' : '<li>openssl</li>';
-                echo extension_loaded('mbstring') ? '' : '<li>openssl</li>';
+                echo extension_loaded('curl') ? '' : '<li>curl</li>';
+                echo extension_loaded('iconv') ? '' : '<li>iconv</li>';
+                echo extension_loaded('mbstring') ? '' : '<li>mbstring</li>';
                 echo '</ul></div>';
                 die();
             }
