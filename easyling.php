@@ -104,7 +104,7 @@ if (!class_exists('Easyling')) {
             }
 
             // plugin activation / deletion
-            $path = WP_PLUGIN_DIR . '/easyling/easyling.php';
+            $path = WP_PLUGIN_DIR . '/easyling-for-wp/easyling.php';
             register_activation_hook($path, array(&$this, 'activation_hook'));
             register_deactivation_hook($path, array(&$this, 'deactivation_hook'));
             register_uninstall_hook($path, array(&$this, 'uninstall_hook'));
