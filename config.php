@@ -5,5 +5,5 @@
  * Contains general config parameters for plugin
  */
 
-define ('EASYLING_ENDPOINT', "http://akeszi.skawa-easyling.appspot.com/_el/ext/");
+define ('EASYLING_ENDPOINT', "http://app.easyling.com/_el/ext/");
 
