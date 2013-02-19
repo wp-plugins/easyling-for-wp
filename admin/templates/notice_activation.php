@@ -13,7 +13,7 @@ if (!$option['popup_shown']):
             <li>an active Easyling.com account</li>
             <li>a project set up on Easyiling.com</li>
         </ul>
-        <p>If you do not yet have an Easyling account, you can create one for free by clicking here: <a href="http://www.easyling.com/website-owners/#register" target="_blank">Create an Easyling Account</a></p>    
+        <p>If you do not yet have an Easyling account, you can create one for free by clicking here: <a href="http://www.easyling.com/website-owners/?utm_source=easyling-wp-plugin-admin&utm_medium=admin-link&utm_campaign=easyling-wp" target="_blank">Create an Easyling Account</a></p>    
     </div>
     <script type="text/javascript">
         jQuery(document).ready(function(){

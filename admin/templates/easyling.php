@@ -196,46 +196,97 @@
 <?php
 $option = get_option('easyling');
 if ($consent !== null && !$option['tutorial_shown']):
-?>
-<div id="modal-tutorial" class="modal-content">        
-    <div class="tutorial" style="background-image: url(<?php echo EASYLING_URL; ?>/images/tutorial.jpg);" >                    
-        <div class="nav-left"><img src="<?php echo EASYLING_URL ?>/images/left.png" /></div>
-        <div class="nav-right"><img src="<?php echo EASYLING_URL ?>/images/right.png" /></div>
+    ?>
+    <div id="modal-tutorial" class="modal-content">        
+        <div class="tutorial" style="background-image: url(<?php echo EASYLING_URL; ?>/images/tutorial.jpg);" >                    
+            <div class="nav-left"><img src="<?php echo EASYLING_URL ?>/images/left.png" /></div>
+            <div class="nav-right"><img src="<?php echo EASYLING_URL ?>/images/right.png" /></div>
+        </div>
     </div>
-</div>
-<script type="text/javascript">
-    jQuery(document).ready(function(){
-        jQuery('#modal-tutorial').modal({
-            minHeight: 630,
-            minWidth: 875,
-            containerCss: {
-                'padding': '0px',
-                'background-color' : 'black'                                
+    <script type="text/javascript">
+        jQuery(document).ready(function(){
+            jQuery('#modal-tutorial').modal({
+                minHeight: 630,
+                minWidth: 875,
+                containerCss: {
+                    'padding': '0px',
+                    'background-color' : 'black'
+                }
+            });
+                            
+            var bgPositions = {                
+                slides: 5,
+                slideWidth: 775,
+                max: parseInt(jQuery("#modal-tutorial .tutorial").css('background-position').split(" ")[0]),
+                min: null               
+            };
+            bgPositions.min = bgPositions.max -  (bgPositions.slides-1) * bgPositions.slideWidth;           
+                            
+            /**
+             * Method to update the left and right arrows - when they are shown or hidden
+             */
+            function updateArrows() {
+                var el = jQuery("#modal-tutorial .tutorial");
+                var bgpos = parseInt(el.css('background-position').split(" ")[0]) 
+                if(bgpos >= bgPositions.max) {
+                    // right is possible
+                    jQuery("#modal-tutorial .nav-left img").hide();
+                    jQuery("#modal-tutorial .nav-right img").show();
+                    // for the crazy clickers who just hammer left and right
+                    // for starting position or end position
+                    if(bgpos > bgPositions.max) {
+                        jQuery("#modal-tutorial .tutorial").css('background-position', '40px 0px');
+                    }
+                }else if(bgpos <= bgPositions.min) {
+                    // left is possible
+                    jQuery("#modal-tutorial .nav-right img").hide();
+                    jQuery("#modal-tutorial .nav-left img").show();      
+                    // for the crazy clickers who just hammer left and right
+                    // for starting position or end position
+                    if(bgpos < bgPositions.min) {
+                        jQuery("#modal-tutorial .tutorial").css('background-position', '-3060px 0px');
+                    }
+                }else {
+                    // rest of the cases both arrow should be shown
+                    jQuery("#modal-tutorial .nav-right img").show();
+                    jQuery("#modal-tutorial .nav-left img").show(); 
+                }
             }
-        });
-        
-        jQuery("#modal-tutorial .nav-left").click(function(){
-            var el = jQuery("#modal-tutorial .tutorial");
-            var bgpos = parseInt(el.css('background-position-x'));                             
-            if(bgpos < 40) {
-                jQuery("#modal-tutorial .tutorial").animate({
-                    'background-position-x': '+=775'
-                }, 500);   
-            }
-        });
-        jQuery("#modal-tutorial .nav-right").click(function(){            
-            var el = jQuery("#modal-tutorial .tutorial");
-            var bgpos = parseInt(el.css('background-position-x'));                                   
-            if(bgpos > -3060){
-                jQuery("#modal-tutorial .tutorial").animate({
-                    'background-position-x': '-=775'
-                }, 500);            
-            }
-        });    
-        
-    })
-</script>
-<?php
+                                                
+            updateArrows();
+                                                
+            jQuery("#modal-tutorial .nav-left, #modal-tutorial .nav-left img, #modal-tutorial .nav-right, #modal-tutorial .nav-right img").click(function(e){
+                var el = jQuery("#modal-tutorial .tutorial");
+                var bgpos = parseInt(el.css('background-position').split(" ")[0])     
+                var eTarget = jQuery(this);
+                var move = (eTarget.hasClass('nav-left') 
+                    || eTarget.parent().hasClass('nav-left')) 
+                    ? '+='+bgPositions.slideWidth : '-='+bgPositions.slideWidth;
+                // boundary check
+                if(bgpos <= bgPositions.max && bgpos >= bgPositions.min) {     
+                    // do nothing if it is the first or last slide
+                    if( (eTarget.hasClass('nav-left') || eTarget.parent().hasClass('nav-left')) 
+                        && bgpos == bgPositions.max){
+                        move = '+=0';
+                    }else if((eTarget.hasClass('nav-right') || eTarget.parent().hasClass('nav-right')) 
+                        && bgpos == bgPositions.min){
+                        move = '+=0';
+                    }
+                    jQuery("#modal-tutorial .tutorial").animate({
+                        'background-position': move
+                    }, 250, function() {
+                        updateArrows();        
+                    });   
+                }
+                // since both the div and the img has the same event, let's not
+                // allow the event to bubble up in the DOM tree                
+                e.stopPropagation();
+                return false;
+            });       
+                                                                
+        })
+    </script>
+    <?php
     $option['tutorial_shown'] = true;
     update_option('easyling', $option);
 endif;

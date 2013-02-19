@@ -14,7 +14,7 @@ class Easyling_Admin {
 
     const OAUTH_CREATEIDENT = "ptm/createIdentity";
     const OAUTH_REQUESTTOKEN = "oauth/getRequestToken";
-    const DEFAULT_EASYLING_ENDPOINT = "http://akeszi.skawa-easyling.appspot.com/_el/ext/";
+    const DEFAULT_EASYLING_ENDPOINT = "http://app.easyling.com/_el/ext/";
 
     /**
      * Easyling Instance
@@ -39,6 +39,12 @@ class Easyling_Admin {
 
         if (!session_id())
             session_start();
+        
+        // access token is valid for a while, let's load it as an option
+        $access_tokens = get_option('easyling_access_tokens', false);
+        if($access_tokens !== false) {
+            $_SESSION['oauth'] = $access_tokens;
+        }
 
         // set the internal redirect
         $this->_redirURL = isset($_SESSION['oauth_internal_redirect']) ? $_SESSION['oauth_internal_redirect'] : null;
@@ -88,6 +94,7 @@ class Easyling_Admin {
             delete_option('easyling_project_languages');
             delete_option('easyling_linked_project');
             delete_option('easyling_consent');
+            delete_option('easyling_access_tokens');
             // set the status
             $optEasyling = get_option('easyling');
             $optEasyling['status'] = Easyling::STATUS_INSTALLED;
@@ -195,6 +202,11 @@ class Easyling_Admin {
                 unset($_SESSION['oauth']);
                 $_SESSION['oauth']['access_token'] = $accessToken;
                 $_SESSION['oauth']['access_token_secret'] = $accessTokenSecret;
+                // update easyling options
+                update_option('easyling_access_tokens', array(
+                    'access_token' => $accessToken,
+                    'access_token_secret' => $accessTokenSecret
+                ));
                 if ($this->_redirURL !== null) {
                     unset($_SESSION['oauth_internal_redirect']);
                     header('Location: ' . $this->_redirURL);
@@ -355,7 +367,7 @@ class Easyling_Admin {
                 'id' => 'help_easyling_test',
                 'title' => 'Easyling for Wordpress',
                 'content' => $this->renderTemplate('help_intro')
-            ));                      
+            ));
         }
     }
 

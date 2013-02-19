@@ -3,7 +3,7 @@
 /*
   Plugin Name: Easyling for Wordpress
   Description: Easyling is a Website translation tool, suitable for DIY work; or order the professional translation service from  www.easyling.com.
-  Version: 0.9.5
+  Version: 0.9.6
   Plugin URI: http://easyling.com
  */
 
@@ -72,11 +72,11 @@ if (!class_exists('Easyling')) {
          */
         public $settings = null;
 
-	    /**
-	     * User allow us to send error reporting
-	     * @var bool
-	     */
-	    private $consent;
+        /**
+         * User allow us to send error reporting
+         * @var bool
+         */
+        private $consent;
 
         /**
          * Get the instance of Easyling Plugin - Singleton pattern
@@ -91,10 +91,10 @@ if (!class_exists('Easyling')) {
 
         private function __construct() {
 
-	        // first get consent to correctly set in getPTM
-	        $this->consent = get_option('easyling_consent', false);
+            // first get consent to correctly set in getPTM
+            $this->consent = get_option('easyling_consent', false);
 
-	        // add non pivileged ajax
+            // add non pivileged ajax
             add_action('wp_ajax_nopriv_easyling_oauth_push', array(&$this, 'ajax_oauth_push'));
 
             // admin only things
@@ -112,11 +112,11 @@ if (!class_exists('Easyling')) {
             // get settings
             $this->settings = get_option('easyling');
 
-	        // hooks
+            // hooks
             if (!is_admin()) {
-                if($this->settings['status'] == self::STATUS_AUTHED){
-                // very low prio
-                add_action('parse_query', array($this, 'detect_language'), 9999);
+                if ($this->settings['status'] == self::STATUS_AUTHED) {
+                    // very low prio
+                    add_action('parse_query', array($this, 'detect_language'), 9999);
                 }
                 // create a new OB with callback
                 add_action('init', array(&$this, 'init_ob_start'));
@@ -145,31 +145,31 @@ if (!class_exists('Easyling')) {
 
             add_filter('query_vars', array(&$this, 'queryVars'));
 
-if($this->settings['status'] == self::STATUS_AUTHED){
-            // check for multi domain support
-            $multidomain = get_option('easyling_multidomain', false);
-            if ($multidomain && $multidomain['status'] == 'on') {
-                $this->useMultidomain = true;
-                // build config
-                $mdConfig = array();
-                foreach ($this->get_available_languages() as $lang) {
-                    // strip http, https and www + /
-                    if (strspn($lang, 'htps:/', 0, 8) < 7) {
-                        $lang = 'http://' . $lang;
+            if ($this->settings['status'] == self::STATUS_AUTHED) {
+                // check for multi domain support
+                $multidomain = get_option('easyling_multidomain', false);
+                if ($multidomain && $multidomain['status'] == 'on') {
+                    $this->useMultidomain = true;
+                    // build config
+                    $mdConfig = array();
+                    foreach ($this->get_available_languages() as $lang) {
+                        // strip http, https and www + /
+                        if (strspn($lang, 'htps:/', 0, 8) < 7) {
+                            $lang = 'http://' . $lang;
+                        }
+                        $p = parse_url($lang);
+                        $uri = $p['host'];
+                        $mdConfig[] = array(
+                            'domain' => $uri,
+                            'siteurl' => $lang,
+                            'home' => $lang
+                        );
                     }
-                    $p = parse_url($lang);
-                    $uri = $p['host'];
-                    $mdConfig[] = array(
-                        'domain' => $uri,
-                        'siteurl' => $lang,
-                        'home' => $lang
-                    );
+                    // include multisite component
+                    require_once EASYLING_PATH . '/includes/Multidomain/Multidomain.php';
+                    $this->multidomain = new MultiDomain($mdConfig);
                 }
-                // include multisite component
-                require_once EASYLING_PATH . '/includes/Multidomain/Multidomain.php';
-                $this->multidomain = new MultiDomain($mdConfig);
             }
-}
         }
 
         public function filter_rewrite_rules_array($rules) {
@@ -287,7 +287,7 @@ if($this->settings['status'] == self::STATUS_AUTHED){
         public function matchDomainToLocale() {
             $domain = $_SERVER['HTTP_HOST'];
             $linked_project_languages = get_option('easyling_project_languages');
-                      foreach ($linked_project_languages as $locale => $settings) {
+            foreach ($linked_project_languages as $locale => $settings) {
                 if ($settings['used'] != 'on')
                     continue;
                 // transform the domain a bit
@@ -325,7 +325,7 @@ if($this->settings['status'] == self::STATUS_AUTHED){
                     $available_languages[$locale] = $settings['domain'];
                 else
                     $available_languages[$locale] = $settings['lngcode'];
-            }            
+            }
             return $available_languages;
         }
 
@@ -377,7 +377,7 @@ if($this->settings['status'] == self::STATUS_AUTHED){
             return $new_rewrite_rules;
 //		    return $rewrite_rules;
         }
-        
+
         public function _preg_replace_callback($match) {
             return 'matches[' . ($match[1] + 1) . ']';
         }
@@ -517,6 +517,7 @@ if($this->settings['status'] == self::STATUS_AUTHED){
             delete_option('easyling_linked_project');
             delete_option('easyling_multidomain');
             delete_option('easyling_consent');
+            delete_option('easyling_access_tokens');
             // option to store oauth consumer key and secret
             delete_option('easyling_id');
 
@@ -534,13 +535,13 @@ if($this->settings['status'] == self::STATUS_AUTHED){
             
         }
 
-	    /**
-	     * @return PTM
-	     */
-	    public function getPtm() {
+        /**
+         * @return PTM
+         */
+        public function getPtm() {
             if ($this->ptm === null) {
                 $this->ptm = new PTM();
-	            $this->ptm->enableErrorReporting($this->consent);
+                $this->ptm->enableErrorReporting($this->consent);
                 $projectPageStorage = new WPDbStorage(KeyValueStorage::ITEMTYPE_PROJECTPAGE);
                 $optionStorage = new WPOptionStorage(KeyValueStorage::ITEMTYPE_OPTION);
                 $sm = $this->ptm->getStorageManager();
@@ -548,7 +549,7 @@ if($this->settings['status'] == self::STATUS_AUTHED){
                 $sm->setStorageForItemType(KeyValueStorage::ITEMTYPE_OPTION, $optionStorage);
             }
             return $this->ptm;
-        }    
+        }
 
     }
 
