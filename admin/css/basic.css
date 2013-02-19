@@ -28,7 +28,7 @@
 #simplemodal-container .tutorial {
     background-repeat: no-repeat;
     overflow: hidden;
-    background-position-x: 40px;
+    background-position: 40px 0px;
 }
 #simplemodal-container .nav-left, #simplemodal-container .nav-right {
     height: 600px;
