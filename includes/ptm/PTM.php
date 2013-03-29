@@ -284,7 +284,8 @@ class PTM
 			$translator->setNormalizedLookup($tes);
 			$translator->translateDocument($dom);
 
-			return $dom->saveHTML();
+			$htmlContent = "<!DOCTYPE html>\n".$dom->saveHTML();
+			return $htmlContent;
 		}
 		catch (Exception $e)
 		{
