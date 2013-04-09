@@ -14,11 +14,11 @@ class Easyling_Admin {
 
     const OAUTH_CREATEIDENT = "ptm/createIdentity";
     const OAUTH_REQUESTTOKEN = "oauth/getRequestToken";
-    const DEFAULT_EASYLING_ENDPOINT = "http://akeszi.skawa-easyling.appspot.com/_el/ext/";
+    const DEFAULT_EASYLING_ENDPOINT = "http://app.easyling.com/_el/ext/";
 
     /**
      * Easyling Instance
-     * @var Easyling 
+     * @var Easyling
      */
     private $easylingInstance;
 
@@ -40,6 +40,12 @@ class Easyling_Admin {
         if (!session_id())
             session_start();
 
+        // access token is valid for a while, let's load it as an option
+        $access_tokens = get_option('easyling_access_tokens', false);
+        if ($access_tokens !== false) {
+            $_SESSION['oauth'] = $access_tokens;
+        }
+
         // set the internal redirect
         $this->_redirURL = isset($_SESSION['oauth_internal_redirect']) ? $_SESSION['oauth_internal_redirect'] : null;
         // start transfer
@@ -60,22 +66,48 @@ class Easyling_Admin {
             $linked_project = get_option('easyling_linked_project');
             $project = $this->easylingInstance->getPtm()->getFrameworkService()->getProjectByCode($linked_project);
             $lang = $project->getProjectLanguageArray();
-            foreach ($lang as $l) {
-                $params = array(
-                    'projectCode' => $project->getProjectCode(),
-                    'targetLanguage' => $l,
-                    'callback' => get_site_url() . "/wp-admin/admin-ajax.php?action=easyling_oauth_push&projectCode={$project->getProjectCode()}&targetLanguage={$l}"
-                );
-                extract(get_option('easyling_id'));
-                $consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
-                $token = new OAuthToken($_SESSION['oauth']['access_token'], $_SESSION['oauth']['access_token_secret']);
-                $req = OAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
-                $req->sign_request($hmac_method, $consumer, $token);
-                $res = $req->curlit($req->to_url());
+
+            $req = null;
+            $res = null;
+            try {
+
+                foreach ($lang as $l) {
+                    $params = array(
+                        'projectCode' => $project->getProjectCode(),
+                        'targetLanguage' => $l,
+                        'callback' => get_site_url() . "/wp-admin/admin-ajax.php?action=easyling_oauth_push&projectCode={$project->getProjectCode()}&targetLanguage={$l}"
+                    );
+                    extract(get_option('easyling_id'));
+                    $consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
+                    $token = new OAuthToken($_SESSION['oauth']['access_token'], $_SESSION['oauth']['access_token_secret']);
+                    $req = OAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
+                    $req->sign_request($hmac_method, $consumer, $token);
+                    $res = $req->curlit($req->to_url());
+                    $this->checkOAuthInvalidToken($res, 'admin.php?page=easyling&transfer=1');
+                }
+            } catch (Exception $e) {
+                $this->easylingInstance->getPtm()->sendErrorReport($e, PTMException::LEVEL_ERROR, array('method:' => 'startTransfer', 'oauth_request' => $req, 'oauth_resp' => $res));
             }
             header('Location: ' . get_admin_url() . 'admin.php?page=easyling');
         } else {
             $this->oauth_action();
+        }
+    }
+
+    public function checkOAuthInvalidToken($oauthResponse, $redirectPath) {
+        if ($oauthResponse['code'] == 400 || $oauthResponse['code'] == 500) {
+            $rawResponse = $oauthResponse['response'];
+            $response = @json_decode($rawResponse, true);
+
+            if ($response != null && isset($response['error'])) {
+                if ($response['mnemonic'] == "invalidToken") {
+                    $_SESSION['oauth_internal_redirect'] = get_admin_url(null, $redirectPath, 'admin');
+                    $this->oauth_authorization();
+                    die();
+                }
+            }
+
+            throw new Exception("Unrecoverable error by accessing OAuth resource");
         }
     }
 
@@ -88,6 +120,7 @@ class Easyling_Admin {
             delete_option('easyling_project_languages');
             delete_option('easyling_linked_project');
             delete_option('easyling_consent');
+            delete_option('easyling_access_tokens');
             // set the status
             $optEasyling = get_option('easyling');
             $optEasyling['status'] = Easyling::STATUS_INSTALLED;
@@ -119,13 +152,12 @@ class Easyling_Admin {
         $blogurl = get_site_url();
         $parsedUrl = parse_url($blogurl);
         $req = new OAuthRequest('GET', $this->_oauth_endpoint . self::OAUTH_CREATEIDENT . "?siteName=" .
-                        $parsedUrl['host']);
+                $parsedUrl['host']);
         $res = $req->curlit();
         try {
             if ($res['code'] == 200) {
                 $response = json_decode($res['response'], true);
-                if (isset($response['response']['identity'])
-                        && isset($response['response']['identity']['consumerKey'])) {
+                if (isset($response['response']['identity']) && isset($response['response']['identity']['consumerKey'])) {
                     $key = $response['response']['identity']['consumerKey'];
                     $secret = $response['response']['identity']['consumerSecret'];
                     update_option('easyling_id', array(
@@ -161,9 +193,9 @@ class Easyling_Admin {
         try {
             if ($req->response['code'] == 200) {
                 $response = $req->extract_params($req->response['response']);
-                $_SESSION['oauth'] = $response;
+                $_SESSION['oauth_token_secret'] = $response['oauth_token_secret'];
                 $parsedUrl = parse_url(get_site_url());
-                header("Location: {$oauthServer}oauth/authorizeUser?oauth_token=" . $_SESSION['oauth']['oauth_token'] . '&siteName=' . $parsedUrl['host']);
+                header("Location: {$oauthServer}oauth/authorizeUser?oauth_token=" . $response['oauth_token'] . '&siteName=' . $parsedUrl['host']);
             } else {
                 throw new Exception('OAuth Error while getting Request Token');
             }
@@ -180,9 +212,10 @@ class Easyling_Admin {
             'oauth_verifier' => $_REQUEST['oauth_verifier'],
 //        'oauth_token' => $_REQUEST['oauth_token']
         );
+        $oauthToken = $_REQUEST['oauth_token'];
         extract(get_option('easyling_id'));
         $consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
-        $token = new OAuthToken($_SESSION['oauth']['oauth_token'], $_SESSION['oauth']['oauth_token_secret']);
+        $token = new OAuthToken($oauthToken, $_SESSION['oauth_token_secret']);
         $req = OAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
         $req->sign_request($hmac_method, $consumer, $token);
         $res = $req->curlit($req->to_url());
@@ -195,10 +228,16 @@ class Easyling_Admin {
                 unset($_SESSION['oauth']);
                 $_SESSION['oauth']['access_token'] = $accessToken;
                 $_SESSION['oauth']['access_token_secret'] = $accessTokenSecret;
+                // update easyling options
+                update_option('easyling_access_tokens', array(
+                    'access_token' => $accessToken,
+                    'access_token_secret' => $accessTokenSecret
+                ));
                 if ($this->_redirURL !== null) {
                     unset($_SESSION['oauth_internal_redirect']);
                     header('Location: ' . $this->_redirURL);
-                }else
+                }
+                else
                     header('Location: ' . get_admin_url(null, '', 'admin') . 'admin.php?page=easyling&oauth_action=retrieveprojects');
             } else {
                 throw new Exception("Could not retrieve Access Token - " . $answer['message']);
@@ -211,7 +250,7 @@ class Easyling_Admin {
     public function oauth_retrieveprojects() {
         // check if we have access_token
         if (!isset($_SESSION['oauth']['access_token'])) {
-            // try to             
+            // try to
             $_SESSION['oauth_internal_redirect'] = get_admin_url(null, 'admin.php?page=easyling&oauth_action=retrieveprojects', 'admin');
             $this->oauth_authorization();
             die();
@@ -228,9 +267,16 @@ class Easyling_Admin {
         $req->sign_request($hmac_method, $consumer, $token);
         $res = $req->curlit($req->to_url());
         try {
+            $this->checkOAuthInvalidToken($res, 'admin.php?page=easyling&oauth_action=retrieveprojects');
             if ($res['code'] == 200) {
                 $decoded = json_decode($res['response'], true);
                 foreach ($decoded['response']['projects'] as $p) {
+
+                    // not add, if not accessible
+                    if (!$p['accessible']) {
+                        continue;
+                    }
+
                     // get available languages for project
                     $endpoint = $oauthServer . 'ptm/languageList';
                     $params = array(
@@ -355,7 +401,7 @@ class Easyling_Admin {
                 'id' => 'help_easyling_test',
                 'title' => 'Easyling for Wordpress',
                 'content' => $this->renderTemplate('help_intro')
-            ));                      
+            ));
         }
     }
 
@@ -375,3 +421,4 @@ class Easyling_Admin {
     // OAUTH METHODS   //
     /////////////////////
 }
+
