@@ -3,7 +3,7 @@
 /*
   Plugin Name: Easyling for Wordpress
   Description: Easyling is a Website translation tool, suitable for DIY work; or order the professional translation service from  www.easyling.com.
-  Version: 0.9.8
+  Version: 0.9.9
   Plugin URI: http://easyling.com
  */
 
@@ -392,9 +392,10 @@ if (!class_exists('Easyling')) {
 
         public function get_resource_map($remoteURL) {
             $home = home_url() . "/";
+	        // add start page, if we use directory mapping
             if (!$this->useMultidomain)
-                return array($home => $home . $this->targetLanguage);
-            return array($home => $home);
+                return array($home => $home . $this->targetLanguage . "/");
+            return array();
         }
 
         public function translate($projectCode, $remoteURL, $targetLanguage, $htmlContent = null) {

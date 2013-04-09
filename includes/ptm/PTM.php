@@ -156,6 +156,7 @@ class PTM
 
 	/**
 	 * @param $htmlContent
+	 * @param string $originalEncoding
 	 * @return \DOMDocument
 	 */
 	public function parseHTMLContent($htmlContent, $originalEncoding = "UTF-8")
@@ -252,10 +253,9 @@ class PTM
 			// get translations for page
 			$tes = $this->getTranslationForPage($p, $targetLanguage, $remoteURL);
 
-
-			// if no available translation, return original content
+			// if no available translation for page, start with an empty map
 			if ($tes == null) {
-				return $htmlContent;
+				$tes = new Map();
 			}
 
 			$manuals = array();
@@ -276,6 +276,10 @@ class PTM
 				$tes->put($resourceOriginal,array(new TranslationEntry(array('o'=>$resourceOriginal,
 					't'=>$resourceTarget,'eu'=>$resourceOriginal,'p'=>''))));
 			}
+
+			// if no translation entry added, return the original content
+			if ($tes->isEmpty())
+				return $htmlContent;
 
 			$dom = $this->parseHTMLContent($htmlContent);
 
