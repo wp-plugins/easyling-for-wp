@@ -8,7 +8,7 @@ abstract class Matcher_Abstract {
 
     /**
      * Matches array
-     * @var array 
+     * @var array
      */
     protected $_matches;
 
@@ -25,7 +25,7 @@ abstract class Matcher_Abstract {
     protected $_pattern;
 
     /**
-     * Pointer to the array element that is currently being used 
+     * Pointer to the array element that is currently being used
      * @var int
      */
     protected $_matchesPointer = null;
@@ -82,7 +82,7 @@ abstract class Matcher_Abstract {
 
 class Matcher extends Matcher_Abstract {
 
-    public function __construct($str, Pattern_Abstract $pattern) {
+    public function __construct($str, Pattern_Abstract &$pattern) {
         $this->_str = $str;
         $this->_pattern = $pattern;
         $p = $pattern->pattern();
@@ -146,3 +146,4 @@ class Matcher extends Matcher_Abstract {
     }
 
 }
+
