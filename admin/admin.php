@@ -21,6 +21,7 @@ class Easyling_Admin {
      * @var Easyling
      */
     private $easylingInstance;
+    private $updateNotices = array();
 
     public function __construct($easylingInstance) {
         $this->easylingInstance = $easylingInstance;
@@ -36,6 +37,8 @@ class Easyling_Admin {
         add_action('load-plugins.php', array(&$this, 'prepare_admin_notices'));
         // register settings
         add_action('admin_init', array(&$this, 'register_options'));
+        // register plugin update stuff
+        add_action('admin_init', array($this, 'run_plugin_update_callbacks'));
 
         if (!session_id())
             session_start();
@@ -47,7 +50,9 @@ class Easyling_Admin {
         }
 
         // set the internal redirect
-        $this->_redirURL = isset($_SESSION['oauth_internal_redirect']) ? $_SESSION['oauth_internal_redirect'] : null;
+        $this->_redirURL = isset($_SESSION['oauth_internal_redirect'])
+                ? $_SESSION['oauth_internal_redirect']
+                : null;
         // start transfer
         if (isset($_REQUEST['transfer'])) {
 
@@ -73,9 +78,9 @@ class Easyling_Admin {
 
                 foreach ($lang as $l) {
                     $params = array(
-                        'projectCode' => $project->getProjectCode(),
+                        'projectCode'    => $project->getProjectCode(),
                         'targetLanguage' => $l,
-                        'callback' => get_site_url() . "/wp-admin/admin-ajax.php?action=easyling_oauth_push&projectCode={$project->getProjectCode()}&targetLanguage={$l}"
+                        'callback'       => get_site_url() . "/wp-admin/admin-ajax.php?action=easyling_oauth_push&projectCode={$project->getProjectCode()}&targetLanguage={$l}"
                     );
                     extract(get_option('easyling_id'));
                     $consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
@@ -86,7 +91,7 @@ class Easyling_Admin {
                     $this->checkOAuthInvalidToken($res, 'admin.php?page=easyling&transfer=1');
                 }
             } catch (Exception $e) {
-                $this->easylingInstance->getPtm()->sendErrorReport($e, PTMException::LEVEL_ERROR, array('method:' => 'startTransfer', 'oauth_request' => $req, 'oauth_resp' => $res));
+                $this->easylingInstance->getPtm()->sendErrorReport($e, PTMException::LEVEL_ERROR, array('method:'       => 'startTransfer', 'oauth_request' => $req, 'oauth_resp'    => $res));
             }
             header('Location: ' . get_admin_url() . 'admin.php?page=easyling');
         } else {
@@ -161,7 +166,7 @@ class Easyling_Admin {
                     $key = $response['response']['identity']['consumerKey'];
                     $secret = $response['response']['identity']['consumerSecret'];
                     update_option('easyling_id', array(
-                        'consumer_key' => $key,
+                        'consumer_key'    => $key,
                         'consumer_secret' => $secret
                     ));
                     header('Location: ' . get_admin_url(null, '', 'admin') . 'admin.php?page=easyling&oauth_action=authorization');
@@ -230,7 +235,7 @@ class Easyling_Admin {
                 $_SESSION['oauth']['access_token_secret'] = $accessTokenSecret;
                 // update easyling options
                 update_option('easyling_access_tokens', array(
-                    'access_token' => $accessToken,
+                    'access_token'        => $accessToken,
                     'access_token_secret' => $accessTokenSecret
                 ));
                 if ($this->_redirURL !== null) {
@@ -295,6 +300,9 @@ class Easyling_Admin {
                         }
                         $project = new Project($p['name'], $p['code'], $languages);
                         $this->easylingInstance->getPtm()->getFrameworkService()->addAvailableProject($project);
+                        $projectSourceLangs = get_option('easyling_source_langs', array());
+                        $mergedProjectSourceLangs = array_merge($projectSourceLangs, array($p['code'] => $p['sourceLanguage']));
+                        update_option('easyling_source_langs', $mergedProjectSourceLangs);
                         // save project
                     } elseif ($resLang['code'] == 403) {
                         // no access to the project - ask for it
@@ -334,13 +342,45 @@ class Easyling_Admin {
         if (!current_user_can('manage_options'))
             return;
 
-        echo $this->renderTemplate('notice_activation');
+
+        echo $this->renderTemplate('notice_activation', $this->updateNotices);
+    }
+
+    /**
+     * Runs the update callback functions
+     *
+     * @param array $opt_easyling
+     * @param array $updates
+     */
+    public function run_plugin_update_callbacks() {
+
+        $opt_easyling = get_option('easyling');
+        $updates = isset($opt_easyling['updates'])
+                ? $opt_easyling['updates']
+                : null;
+
+        $vars = array('messages' => array());
+        if (!empty($updates)) {
+            foreach ($updates as $k => $update) {
+                $vars['messages'][] = $update['message'];
+            }
+            $this->updateNotices = $vars;
+
+            // make sure to set the update messages as shown
+            foreach ($updates as $k => $update) {
+                $update['acted_upon'] = true;
+                $opt_easyling['updates'][$k] = $update;
+                $opt_easyling = call_user_func_array(array($this->easylingInstance, $update['callback']), array($opt_easyling));
+                update_option('easyling', $opt_easyling);
+            }
+        }
     }
 
     public function register_options() {
         register_setting('easyling_linking', 'easyling_linked_project');
         register_setting('easyling_linking', 'easyling_project_languages');
         register_setting('easyling_linking', 'easyling_multidomain');
+        register_setting('easyling_linking', 'easyling_language_selector');
         register_setting('easyling_consent', 'easyling_consent');
         wp_register_style('modal-basic', EASYLING_URL . '/admin/css/basic.css');
         wp_enqueue_style('modal-basic');
@@ -367,6 +407,7 @@ class Easyling_Admin {
         $projects = $ptm->getFrameworkService()->getAvailableProjects();
 //        $locale = get_option('easyling_available_locales', array());
         $project_languages = get_option('easyling_project_languages', array());
+        $language_selector = get_option('easyling_language_selector', 'off');
         $linked = get_option('easyling_linked_project', false);
         $optEasyling = get_option('easyling');
 
@@ -381,14 +422,18 @@ class Easyling_Admin {
             $project_languages = array();
         }
         echo $this->renderTemplate('easyling', array(
-            'projects' => $projects,
+            'projects'          => $projects,
 //            'locale' => $locale,
             'project_languages' => $project_languages,
-            'linked' => $linked,
-            'md' => get_option('easyling_multidomain', false),
-            'pcode' => get_option('easyling_linked_project', false),
-            'easyling_status' => $optEasyling['status'],
-            'consent' => $consent));
+            'linked'            => $linked,
+            'md'                => get_option('easyling_multidomain', false),
+            'pcode'             => get_option('easyling_linked_project', false),
+            'easyling_status'   => $optEasyling['status'],
+            'consent'           => $consent,
+            'language_selector' => $language_selector,
+            'update_messages'   => isset($optEasyling['updates'])
+                    ? $optEasyling['updates']
+                    : null));
     }
 
     public function admin_contextual_help_tabs_easyling() {
@@ -398,8 +443,8 @@ class Easyling_Admin {
             $screen->remove_help_tabs();
             // add general tab
             $screen->add_help_tab(array(
-                'id' => 'help_easyling_test',
-                'title' => 'Easyling for Wordpress',
+                'id'      => 'help_easyling_test',
+                'title'   => 'Easyling for Wordpress',
                 'content' => $this->renderTemplate('help_intro')
             ));
         }
@@ -417,8 +462,5 @@ class Easyling_Admin {
         return ob_get_clean();
     }
 
-    /////////////////////
-    // OAUTH METHODS   //
-    /////////////////////
 }
 
