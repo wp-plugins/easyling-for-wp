@@ -3,7 +3,7 @@
 /*
   Plugin Name: Easyling for Wordpress
   Description: Easyling is a Website translation tool, suitable for DIY work; or order the professional translation service from  www.easyling.com.
-  Version: 0.9.10
+  Version: 0.9.11
   Plugin URI: http://easyling.com
  */
 
@@ -11,7 +11,7 @@ if (!class_exists('Easyling')) {
 
     define('EASYLING_PATH', WP_PLUGIN_DIR . '/easyling-for-wp');
     define('EASYLING_URL', WP_PLUGIN_URL . '/easyling-for-wp');
-    define('EASYLING_VERSION', '0.9.10');
+    define('EASYLING_VERSION', '0.9.11');
 
     require_once dirname(__FILE__) . "/includes/ptm/KeyValueStorage/FileStorage.php";
     require_once dirname(__FILE__) . '/includes/ptm/PTM.php';
@@ -83,7 +83,8 @@ if (!class_exists('Easyling')) {
          * @var array
          */
         private $upgrades = array(
-            '0.1.1' => '0.9.10'
+            '0.1.1' => '0.9.10',
+            '0.9.10' => '0.9.11'
         );
 
         /**
@@ -109,6 +110,9 @@ if (!class_exists('Easyling')) {
             add_action('wp_ajax_nopriv_easyling_oauth_push', array(
                 &$this,
                 'ajax_oauth_push'));
+            add_action('wp_ajax_easyling_oauth_push', array(
+                &$this,
+                'ajax_oauth_push'));
 
             // admin only things
             if (is_admin()) {
@@ -117,8 +121,6 @@ if (!class_exists('Easyling')) {
                 add_action('admin_init', array($this, 'run_update_detection'), 0);
                 $a = new Easyling_Admin($this);
             }
-
-
 
             // plugin activation / deletion
             $path = WP_PLUGIN_DIR . '/easyling-for-wp/easyling.php';
@@ -183,9 +185,9 @@ if (!class_exists('Easyling')) {
                         $p = parse_url($lang);
                         $uri = $p['host'];
                         $mdConfig[] = array(
-                            'domain'  => $uri,
+                            'domain' => $uri,
                             'siteurl' => $lang,
-                            'home'    => $lang);
+                            'home' => $lang);
                     }
                     // include multisite component
                     require_once EASYLING_PATH . '/includes/Multidomain/Multidomain.php';
@@ -200,9 +202,7 @@ if (!class_exists('Easyling')) {
         }
 
         public function easyling_language_selector_floater() {
-            $enabled = get_option('easyling_language_selector', 'off') == 'on'
-                    ? true
-                    : false;
+            $enabled = get_option('easyling_language_selector', 'off') == 'on' ? true : false;
 
             if (!$enabled && !wp_style_is('easyling_register_stylesheet', 'enqueued'))
                 return;
@@ -474,11 +474,9 @@ if (!class_exists('Easyling')) {
                 $original_url = site_url($this->originalRequestURI);
                 if ($this->useMultidomain) {
                     // we need to get the original URL
-                    $original_url = str_replace($_SERVER['HTTPS']
-                                    ? 'https://'
-                                    : 'http://' . $_SERVER['HTTP_HOST'], $this->settings['canonical_url'], $original_url);
+                    $original_url = str_replace($_SERVER['HTTPS'] ? 'https://' : 'http://' . $_SERVER['HTTP_HOST'], $this->settings['canonical_url'], $original_url);
                 } else {
-
+                    
                 }
                 $buffer = $this->translate($pcode, $original_url, $this->targetLocale, $buffer);
             }
@@ -501,10 +499,7 @@ if (!class_exists('Easyling')) {
             $extensions_check = false;
             if (extension_loaded('openssl') &&
                     extension_loaded('curl') &&
-                    (
-                    extension_loaded('iconv') &&
-                    extension_loaded('mbstring')
-                    )
+                    (extension_loaded('iconv') && extension_loaded('mbstring') )
             ) {
                 $extensions_check = true;
                 // check encoding conversion
@@ -522,20 +517,28 @@ if (!class_exists('Easyling')) {
             if ($extensions_check === false) {
                 echo '<div style="font-family: Arial; font-size: 12px;">The Easyling Plugin terminated the activation because the PHP installation misses the following extensions:<br />';
                 echo '<ul>';
-                echo extension_loaded('openssl')
-                        ? ''
-                        : '<li>openssl</li>';
-                echo extension_loaded('curl')
-                        ? ''
-                        : '<li>curl</li>';
-                echo extension_loaded('iconv')
-                        ? ''
-                        : '<li>iconv</li>';
-                echo extension_loaded('mbstring')
-                        ? ''
-                        : '<li>mbstring</li>';
+                echo extension_loaded('openssl') ? '' : '<li>openssl</li>';
+                echo extension_loaded('curl') ? '' : '<li>curl</li>';
+                echo extension_loaded('iconv') ? '' : '<li>iconv</li>';
+                echo extension_loaded('mbstring') ? '' : '<li>mbstring</li>';
                 echo '</ul></div>';
                 die();
+            }
+
+            // create table
+            /** @var wpdb $wpdb */
+            global $wpdb;
+
+            $query = 'CREATE TABLE IF NOT EXISTS `' . $wpdb->prefix . 'easyling` ( ' .
+                    '`easyling_key` varchar(300) CHARACTER SET utf8 NOT NULL, ' .
+                    '`easyling_value` mediumblob NOT NULL, ' .
+//                    ', `easyling_project` varchar(32) CHARACTER SET utf8 NOT NULL, ' .
+                    'UNIQUE KEY `uq_project_key` (`easyling_key`) ' .
+                    ') ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci';
+            $res = $wpdb->query($query);
+            if ($res === false) {
+                // handle error for creating table                
+                throw new Exception("Error while creating table: " . mysql_error());
             }
 
             // add wp_option for easyling
@@ -543,29 +546,13 @@ if (!class_exists('Easyling')) {
                 // plugin has not yet been installed ever or was completly removed
                 // clean install
                 update_option('easyling', array(
-                    'version'       => EASYLING_VERSION,
-                    'status'        => self::STATUS_INSTALLED,
-                    'key'           => sha1(date('Y-m-d h:m', time())),
-                    'default_lang'  => 'en',
+                    'version' => EASYLING_VERSION,
+                    'status' => self::STATUS_INSTALLED,
+                    'key' => sha1(date('Y-m-d h:m', time())),
+                    'default_lang' => 'en',
                     'canonical_url' => get_bloginfo('url'),
-                    'popup_shown'   => false
+                    'popup_shown' => false
                 ));
-
-                // create table
-                /** @var wpdb $wpdb */
-                global $wpdb;
-
-                $query = 'CREATE TABLE IF NOT EXISTS ' . $wpdb->prefix . '`easyling` ( ' .
-                        '`easyling_key` varchar(300) CHARACTER SET utf8 NOT NULL, ' .
-                        '`easyling_value` mediumblob NOT NULL, ' .
-//                        '`easyling_project` varchar(32) CHARACTER SET utf8 NOT NULL, ' .
-                        'UNIQUE KEY `uq_project_key` (`easyling_key`) ' .
-                        ') ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci';
-                $res = $wpdb->query($query);
-                if ($res === false) {
-                    // handle error for creating table
-                    throw new Exception("Error while creating table");
-                }
             } else {
                 /*
                  * This only runs if the user manually deactivates the plugins
@@ -613,7 +600,7 @@ if (!class_exists('Easyling')) {
                         $message = call_user_func(array($this, $method_name));
                         $opt_easyling['version'] = $new;
                         $opt_easyling['updates'][$new] = array(
-                            'message'    => $message,
+                            'message' => $message,
                             'acted_upon' => false);
                         if (method_exists($this, $method_name . '_callback')) {
                             $opt_easyling['updates'][$new]['callback'] = $method_name . '_callback';
@@ -659,6 +646,24 @@ if (!class_exists('Easyling')) {
         }
 
         /**
+         * Run the update of 0910-0911 version and return the message that should be displayed on plugins page
+         * @return string
+         */
+        public function update_0910_0911() {
+            $markup = 'Easyling for WP has been upgarded to <strong>0.9.11</strong>';
+            return $markup;
+        }
+
+        /**         
+         * @param array $easyling
+         * @return array
+         */
+        public function update_0910_0911_callback($easyling) {
+            unset($easyling['updates']['0.9.11']);
+            return $easyling;
+        }
+
+        /**
          * Hook ran when the plugin is deactivated
          */
         public function deactivation_hook() {
@@ -673,7 +678,7 @@ if (!class_exists('Easyling')) {
          * @deprecated since version 0.9.10
          */
         public function uninstall_hook() {
-
+            
         }
 
         /**
@@ -708,6 +713,33 @@ if (!class_exists('Easyling')) {
          */
         public function isMultiDomainUsed() {
             return $this->useMultidomain;
+        }
+
+        /**
+         * Retrieves a list of languages from locales in ISO639-1 (2 letter codes such as en,de,hu)
+         * @param array $locales
+         * @since 0.9.11 
+         * @return array array of languages available 
+         * @throws RuntimeException 
+         */
+        public function filter_available_languages_to_locales($locales) {
+            $ret = array();
+            foreach ($locales as $k => $v) {
+                $ret[substr($k, 0, 2)] = $v;
+            }
+            $pcode = get_option('easyling_linked_project');
+            $sources = get_option('easyling_source_langs', array());
+            if (isset($sources[$pcode])) {
+                if (strpos($sources[$pcode], 'en') === 0) {
+                    $ret[strtolower(substr($sources[$pcode], 3, 2))] = '';
+                } else {
+                    $ret[substr($sources[$pcode], 0, 2)] = '';
+                }
+            } else {
+                // 0.9.10
+                throw new RuntimeException("Please update the project list on the admin UI to correct this error message.");
+            }
+            return $ret;
         }
 
     }
@@ -750,9 +782,7 @@ if (!class_exists('Easyling')) {
                 // multidomain is used such as de.example.com or hu.example.com
                 $url = null;
                 if (!empty($v)) {
-                    $url = ($_SERVER['HTTPS']
-                                    ? 'https://'
-                                    : 'http://') . $v . $origURL;
+                    $url = ($_SERVER['HTTPS'] ? 'https://' : 'http://') . $v . $origURL;
                 } else {
                     $url = $canonical . $origURL;
                 }
@@ -762,13 +792,11 @@ if (!class_exists('Easyling')) {
                     $url = $canonical . '/' . $v . $_SERVER['REQUEST_URI'];
                 } else {
                     // url prefixes are used such as /hu/ or /de/
-                    $url = empty($v)
-                            ? $canonical . $origURL
-                            : $canonical . '/' . $v . $origURL;
+                    $url = empty($v) ? $canonical . $origURL : $canonical . '/' . $v . $origURL;
                 }
             }
             $translationURLs['translations'][$l] = array(
-                'url'    => $url,
+                'url' => $url,
                 'coords' => $coordinates[$l]);
         }
         return $translationURLs;
@@ -792,27 +820,7 @@ if (!class_exists('Easyling')) {
             throw new Exception('Easyling class is not initialized yet. Please make sure you use `easyling_get_languages` after the plugins have been loaded.');
         }
 
-        return call_user_func(function($locales) {
-                    $ret = array(
-                    );
-                    foreach ($locales as $k => $v) {
-                        $ret[substr($k, 0, 2)] = $v;
-                    }
-                    $pcode = get_option('easyling_linked_project');
-                    $sources = get_option('easyling_source_langs', array(
-                    ));
-                    if (isset($sources[$pcode])) {
-                        if (strpos($sources[$pcode], 'en') === 0) {
-                            $ret[strtolower(substr($sources[$pcode], 3, 2))] = '';
-                        } else {
-                            $ret[substr($sources[$pcode], 0, 2)] = '';
-                        }
-                    } else {
-                        // 0.9.10
-                        throw new RuntimeException("Please update the project list on the admin UI to correct this error message.");
-                    }
-                    return $ret;
-                }, $easyling_instance->get_available_languages());
+        return $easyling_instance->filter_available_languages_to_locales($easyling_instance->get_available_languages());
     }
 
 }

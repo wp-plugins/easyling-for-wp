@@ -204,7 +204,7 @@ class Easyling_Admin {
             } else {
                 throw new Exception('OAuth Error while getting Request Token');
             }
-        } catch (Exception $e) {
+        } catch (Exception $e) {            
             $this->easylingInstance->getPtm()->sendErrorReport($e, PTMException::LEVEL_ERROR, array_merge($_SESSION, $req->response));
         }
     }
