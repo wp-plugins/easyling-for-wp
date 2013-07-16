@@ -1,19 +1,19 @@
 === Plugin Name ===
 Contributors: dvarga
-Tags: easyling, translation, multilanguage
+Tags: easyling, translation, multilanguage, website translation, wordpress translation, translation plugin
 Requires at least: 3.5
 Tested up to: 3.5
-Stable tag: 0.9.5
+Stable tag: 0.9.11
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Easyling is a Website translation tool, suitable for DIY work; or order the professional translation service from  www.easyling.com.
+Easyling is a Wordpress translation plugin, suitable for DIY work; or order the professional translation service from  www.easyling.com.
 
 == Description ==
 
-[Easyling.com](http://www.easyling.com "") is a proxy-based website translation solution. It crawls your website, finds all the pages and texts. Then you can do the translation yourself using our in-context, live editing/preview/review editor, or export as an XLIFF file and do the translation in your favourite CAT tool. As an alternative, just leave all the work to us and [order the website translation from Easyling](http://www.easyling.com/website-owners/ ""). 
+[Easyling.com](http://www.easyling.com/?utm_source=easyling-wp-plugin-admin&utm_medium=admin-link&utm_campaign=easyling-wp "") is a proxy-based website translation solution. It crawls your website, finds all the pages and texts. Then you can do the translation yourself using our in-context, live editing/preview/review editor, or export as an XLIFF file and do the translation in your favourite CAT tool. As an alternative, just leave all the work to us and [order the website translation from Easyling](http://www.easyling.com/website-owners/?utm_source=easyling-wp-plugin-admin&utm_medium=admin-link&utm_campaign=easyling-wp ""). 
 
-Once the translation is done, this Easyling for Wordpress plugin does the magic: automatically downloads your translations from Easyling only once, 
+Once the translation of your Wordpress is done, this Easyling for Wordpress plugin does the magic: automatically downloads your translations from Easyling only once, 
 and presents it to your visitors using domain-based or URL-based configuration, i.e.:
 
 *   www.example.com for the main language
@@ -56,7 +56,7 @@ functionality before activating it on a production website.
 
 = Is the Easyling for Wordpress Plugin free to use? =
 
-Yes, 100% free. [Easyling.com](http://www.easyling.com/website-owners/prices "") also has a free plan. 
+Yes, 100% free. [Easyling.com Website Translation](http://www.easyling.com/website-owners/prices?utm_source=easyling-wp-plugin-admin&utm_medium=admin-link&utm_campaign=easyling-wp "") also has got a free plan. 
 
 = Will it work with my (XXXXX) theme? =
 
@@ -64,7 +64,7 @@ Yes. By design, it doesn't matter what theme do you use.
 
 = Do I need to have an Easyling registration? =
 
-Yes! The Plugin is not worth much without an Easyling account. You can create one by visiting [Easyling](http://www.easyling.com/website-owners/#register "")
+Yes! The Plugin is not worth much without an Easyling account. You can create one by visiting [Easyling](http://www.easyling.com/website-owners/?utm_source=easyling-wp-plugin-admin&utm_medium=admin-link&utm_campaign=easyling-wp "")
 
 = What is that "linking" and how do I do that? =
 
@@ -86,6 +86,24 @@ Whenever we hear about such a case, we jump on it and give a fix.
 2. Demonstrates how to "link" the WP Installation with Easyling Services
 
 == Changelog ==
+
+= 0.9.11 =
+* Fixed a small compatibility issue with PHP 5.2 in easyling_get_languages method
+
+= 0.9.10 =
+* Multiple enhancements to how communication between Easyling and the WP blog is handled
+
+= 0.9.9 =
+* Tweaks on the admin to better user experience
+
+= 0.9.8 =
+* HTML5 Doctype support
+
+= 0.9.7 =
+* Updated name of the plugin
+
+= 0.9.6 =
+* Numerous small usability improvements
 
 = 0.9.5 =
 * Using live easyling version

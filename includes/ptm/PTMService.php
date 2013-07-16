@@ -179,6 +179,16 @@ class PTMService
 	}
 
 	/**
+	 * @param string $projectCode
+	 */
+	public function removeAvailableProjectByCode($projectCode)
+	{
+		$projects = $this->getAvailableProjects();
+		$projects->remove($projectCode);
+		$this->saveAvailableProjects();
+	}
+
+	/**
 	 * @param bool $forceOption
 	 * @return Project[]|Map
 	 */
