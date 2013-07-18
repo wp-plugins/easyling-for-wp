@@ -64,7 +64,7 @@ class Easyling_Admin {
                 die();
             }
 
-            $hmac_method = new OAuthSignatureMethod_HMAC_SHA1();
+            $hmac_method = new ELOAuthSignatureMethod_HMAC_SHA1();
             $oauthServer = $this->_oauth_endpoint;
             $endpoint = $oauthServer . 'ptm/startTransfer';
 
@@ -83,9 +83,9 @@ class Easyling_Admin {
                         'callback'       => get_site_url() . "/wp-admin/admin-ajax.php?action=easyling_oauth_push&projectCode={$project->getProjectCode()}&targetLanguage={$l}"
                     );
                     extract(get_option('easyling_id'));
-                    $consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
-                    $token = new OAuthToken($_SESSION['oauth']['access_token'], $_SESSION['oauth']['access_token_secret']);
-                    $req = OAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
+                    $consumer = new ELOAuthConsumer($consumer_key, $consumer_secret, NULL);
+                    $token = new ELOAuthToken($_SESSION['oauth']['access_token'], $_SESSION['oauth']['access_token_secret']);
+                    $req = ELOAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
                     $req->sign_request($hmac_method, $consumer, $token);
                     $res = $req->curlit($req->to_url());
                     $this->checkOAuthInvalidToken($res, 'admin.php?page=easyling&transfer=1');
@@ -156,7 +156,7 @@ class Easyling_Admin {
         // step 1: generate consumer key and secret
         $blogurl = get_site_url();
         $parsedUrl = parse_url($blogurl);
-        $req = new OAuthRequest('GET', $this->_oauth_endpoint . self::OAUTH_CREATEIDENT . "?siteName=" .
+        $req = new ELOAuthRequest('GET', $this->_oauth_endpoint . self::OAUTH_CREATEIDENT . "?siteName=" .
                 $parsedUrl['host']);
         $res = $req->curlit();
         try {
@@ -183,7 +183,7 @@ class Easyling_Admin {
     }
 
     public function oauth_authorization() {
-        $hmac_method = new OAuthSignatureMethod_HMAC_SHA1();
+        $hmac_method = new ELOAuthSignatureMethod_HMAC_SHA1();
         $oauthServer = $this->_oauth_endpoint;
         $endpoint = $oauthServer . self::OAUTH_REQUESTTOKEN;
         $params = array(
@@ -191,8 +191,8 @@ class Easyling_Admin {
         );
         extract(get_option('easyling_id'));
 
-        $consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
-        $req = OAuthRequest::from_consumer_and_token($consumer, NULL, "GET", $endpoint, $params);
+        $consumer = new ELOAuthConsumer($consumer_key, $consumer_secret, NULL);
+        $req = ELOAuthRequest::from_consumer_and_token($consumer, NULL, "GET", $endpoint, $params);
         $req->sign_request($hmac_method, $consumer, NULL);
         $res = $req->curlit($req->to_url());
         try {
@@ -210,7 +210,7 @@ class Easyling_Admin {
     }
 
     public function oauth_accesstoken() {
-        $hmac_method = new OAuthSignatureMethod_HMAC_SHA1();
+        $hmac_method = new ELOAuthSignatureMethod_HMAC_SHA1();
         $oauthServer = $this->_oauth_endpoint;
         $endpoint = $oauthServer . 'oauth/getAccessToken';
         $params = array(
@@ -219,9 +219,9 @@ class Easyling_Admin {
         );
         $oauthToken = $_REQUEST['oauth_token'];
         extract(get_option('easyling_id'));
-        $consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
-        $token = new OAuthToken($oauthToken, $_SESSION['oauth_token_secret']);
-        $req = OAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
+        $consumer = new ELOAuthConsumer($consumer_key, $consumer_secret, NULL);
+        $token = new ELOAuthToken($oauthToken, $_SESSION['oauth_token_secret']);
+        $req = ELOAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
         $req->sign_request($hmac_method, $consumer, $token);
         $res = $req->curlit($req->to_url());
         $answer = $req->extract_params($res['response']);
@@ -260,15 +260,15 @@ class Easyling_Admin {
             $this->oauth_authorization();
             die();
         }
-        $hmac_method = new OAuthSignatureMethod_HMAC_SHA1();
+        $hmac_method = new ELOAuthSignatureMethod_HMAC_SHA1();
         $oauthServer = $this->_oauth_endpoint;
         $endpoint = $oauthServer . 'ptm/projectList';
         $params = array(
         );
         extract(get_option('easyling_id'));
-        $consumer = new OAuthConsumer($consumer_key, $consumer_secret, NULL);
-        $token = new OAuthToken($_SESSION['oauth']['access_token'], $_SESSION['oauth']['access_token_secret']);
-        $req = OAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
+        $consumer = new ELOAuthConsumer($consumer_key, $consumer_secret, NULL);
+        $token = new ELOAuthToken($_SESSION['oauth']['access_token'], $_SESSION['oauth']['access_token_secret']);
+        $req = ELOAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
         $req->sign_request($hmac_method, $consumer, $token);
         $res = $req->curlit($req->to_url());
         try {
@@ -287,7 +287,7 @@ class Easyling_Admin {
                     $params = array(
                         'projectCode' => $p['code']
                     );
-                    $reqLang = OAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
+                    $reqLang = ELOAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
                     $reqLang->sign_request($hmac_method, $consumer, $token);
                     $resLang = $reqLang->curlit($reqLang->to_url());
                     if ($resLang['code'] == 200) {

@@ -3,7 +3,7 @@
 /*
   Plugin Name: Easyling for Wordpress
   Description: Easyling is a Website translation tool, suitable for DIY work; or order the professional translation service from  www.easyling.com.
-  Version: 0.9.11
+  Version: 0.9.12
   Plugin URI: http://easyling.com
  */
 
@@ -11,7 +11,7 @@ if (!class_exists('Easyling')) {
 
     define('EASYLING_PATH', WP_PLUGIN_DIR . '/easyling-for-wp');
     define('EASYLING_URL', WP_PLUGIN_URL . '/easyling-for-wp');
-    define('EASYLING_VERSION', '0.9.11');
+    define('EASYLING_VERSION', '0.9.12');
 
     require_once dirname(__FILE__) . "/includes/ptm/KeyValueStorage/FileStorage.php";
     require_once dirname(__FILE__) . '/includes/ptm/PTM.php';
@@ -84,7 +84,8 @@ if (!class_exists('Easyling')) {
          */
         private $upgrades = array(
             '0.1.1' => '0.9.10',
-            '0.9.10' => '0.9.11'
+            '0.9.10' => '0.9.11',
+            '0.9.11' => '0.9.12',
         );
 
         /**
@@ -654,12 +655,29 @@ if (!class_exists('Easyling')) {
             return $markup;
         }
 
-        /**         
+        /**
          * @param array $easyling
          * @return array
          */
         public function update_0910_0911_callback($easyling) {
             unset($easyling['updates']['0.9.11']);
+            return $easyling;
+        }
+        /**
+         * Run the update of 0911-0912 version and return the message that should be displayed on plugins page
+         * @return string
+         */
+        public function update_0911_0912() {
+            $markup = 'Easyling for WP has been upgarded to <strong>0.9.12</strong>';
+            return $markup;
+        }
+
+        /**
+         * @param array $easyling
+         * @return array
+         */
+        public function update_0911_0912_callback($easyling) {
+            unset($easyling['updates']['0.9.12']);
             return $easyling;
         }
 
