@@ -11,7 +11,7 @@ Easyling is a Wordpress translation plugin, suitable for DIY work; or order the 
 
 == Description ==
 
-[Easyling.com](http://www.easyling.com/?utm_source=easyling-wp-plugin-admin&utm_medium=admin-link&utm_campaign=easyling-wp "") is a proxy-based website translation solution. It crawls your website, finds all the pages and texts. Then you can do the translation yourself using our in-context, live editing/preview/review editor, or export as an XLIFF file and do the translation in your favourite CAT tool. As an alternative, just leave all the work to us and [order the website translation from Easyling](http://www.easyling.com/website-owners/?utm_source=easyling-wp-plugin-admin&utm_medium=admin-link&utm_campaign=easyling-wp ""). 
+[Easyling.com](http://www.easyling.com/?utm_source=easyling-wp-plugin-admin&utm_medium=admin-link&utm_campaign=easyling-wp "") is a proxy-based website translation solution. It crawls your website, finds all the pages and texts. Then you can do the translation yourself using our in-context, live editing/preview/review editor, or export as an XLIFF file and do the translation in your favourite CAT tool.
 
 Once the translation of your Wordpress is done, this Easyling for Wordpress plugin does the magic: automatically downloads your translations from Easyling only once, 
 and presents it to your visitors using domain-based or URL-based configuration, i.e.:
