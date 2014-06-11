@@ -740,20 +740,23 @@ if (!class_exists('Easyling')) {
          * @return array array of languages available 
          * @throws RuntimeException 
          */
-        public function filter_available_languages_to_locales($locales) {
-            $ret = array();
-            foreach ($locales as $k => $v) {
-                $ret[substr($k, 0, 2)] = $v;
-            }
+        public function filter_available_locales($locales) {
+            $ret = $locales;
+//	        print_r($locales);
+//	        die();
+//            foreach ($locales as $k => $v) {
+//                $ret[substr($k, 0, 2)] = $v;
+//            }
             $pcode = get_option('easyling_linked_project');
             $sources = get_option('easyling_source_langs', array());
             if (isset($sources[$pcode])) {
-                if (strpos($sources[$pcode], 'en') === 0) {
+	            $ret[$sources[$pcode]] = '';
+/*                if (strpos($sources[$pcode], 'en') === 0) {
                     $ret[strtolower(substr($sources[$pcode], 3, 2))] = '';
                 } else {
                     $ret[substr($sources[$pcode], 0, 2)] = '';
                 }
-            } else {
+  */          } else {
                 // 0.9.10
                 throw new RuntimeException("Please update the project list on the admin UI to correct this error message.");
             }
@@ -787,14 +790,14 @@ if (!class_exists('Easyling')) {
      */
     function easyling_get_translation_urls() {
         global $easyling_instance;
-        $langs = easyling_get_languages();
+        $locales = easyling_get_locales();
         $origURL = $easyling_instance->getOriginalTranslateURL();
         $coordinates = easyling_flag_coordinates();
         $translationURLs = array(
             'translations' => array()
         );
 
-        foreach ($langs as $l => $v) {
+        foreach ($locales as $locale => $v) {
             $canonical = $easyling_instance->settings['canonical_url'];
             if ($easyling_instance->isMultiDomainUsed()) {
                 // multidomain is used such as de.example.com or hu.example.com
@@ -813,21 +816,24 @@ if (!class_exists('Easyling')) {
                     $url = empty($v) ? $canonical . $origURL : $canonical . '/' . $v . $origURL;
                 }
             }
-            $translationURLs['translations'][$l] = array(
+
+	        list($langCode, $countryCode) = explode("-", $locale);
+	        $countryCode = strtolower($countryCode);
+            $translationURLs['translations'][$locale] = array(
                 'url' => $url,
-                'coords' => $coordinates[$l]);
+                'coords' => $coordinates[$countryCode]);
         }
         return $translationURLs;
     }
 
     /**
-     * Retrieves the available languages from Easyling (eg. en)
+     * Retrieves the available locales from Easyling (eg. en-US)
      *
      * @global Easyling $easyling
      * @since 0.9.10
      * @return array Array of language => URL Part
      */
-    function easyling_get_languages() {
+    function easyling_get_locales() {
         // does not work on admin
         if (is_admin())
             return;
@@ -838,7 +844,7 @@ if (!class_exists('Easyling')) {
             throw new Exception('Easyling class is not initialized yet. Please make sure you use `easyling_get_languages` after the plugins have been loaded.');
         }
 
-        return $easyling_instance->filter_available_languages_to_locales($easyling_instance->get_available_languages());
+        return $easyling_instance->filter_available_locales($easyling_instance->get_available_languages());
     }
 
 }
