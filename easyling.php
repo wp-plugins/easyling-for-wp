@@ -2,8 +2,8 @@
 
 /*
   Plugin Name: Easyling for Wordpress
-  Description: Easyling is a Website translation tool, suitable for DIY work; or order the professional translation service from  www.easyling.com.
-  Version: 0.9.12
+  Description: Easyling is a Website translation tool, suitable for DIY work.
+  Version: 0.9.14
   Plugin URI: http://easyling.com
  */
 
@@ -11,7 +11,7 @@ if (!class_exists('Easyling')) {
 
     define('EASYLING_PATH', WP_PLUGIN_DIR . '/easyling-for-wp');
     define('EASYLING_URL', WP_PLUGIN_URL . '/easyling-for-wp');
-    define('EASYLING_VERSION', '0.9.12');
+    define('EASYLING_VERSION', '0.9.14');
 
     require_once dirname(__FILE__) . "/includes/ptm/KeyValueStorage/FileStorage.php";
     require_once dirname(__FILE__) . '/includes/ptm/PTM.php';
