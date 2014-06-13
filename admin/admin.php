@@ -121,11 +121,14 @@ class Easyling_Admin {
             unset($_SESSION['oauth']);
             unset($_SESSION['oauth_internal_redirect']);
 
+	        delete_option('easyling_id');
             delete_option('easyling_available_locales');
             delete_option('easyling_project_languages');
             delete_option('easyling_linked_project');
             delete_option('easyling_consent');
             delete_option('easyling_access_tokens');
+	        // PTM put this option
+            delete_option('easyling_availableProjects');
             // set the status
             $optEasyling = get_option('easyling');
             $optEasyling['status'] = Easyling::STATUS_INSTALLED;
@@ -204,7 +207,7 @@ class Easyling_Admin {
             } else {
                 throw new Exception('OAuth Error while getting Request Token');
             }
-        } catch (Exception $e) {            
+        } catch (Exception $e) {
             $this->easylingInstance->getPtm()->sendErrorReport($e, PTMException::LEVEL_ERROR, array_merge($_SESSION, $req->response));
         }
     }
@@ -271,6 +274,10 @@ class Easyling_Admin {
         $req = ELOAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
         $req->sign_request($hmac_method, $consumer, $token);
         $res = $req->curlit($req->to_url());
+	    $ptmService = $this->easylingInstance->getPtm()->getFrameworkService();
+
+	    $usedProjects = new Map();
+
         try {
             $this->checkOAuthInvalidToken($res, 'admin.php?page=easyling&oauth_action=retrieveprojects');
             if ($res['code'] == 200) {
@@ -282,10 +289,13 @@ class Easyling_Admin {
                         continue;
                     }
 
+	                $projectCode = $p['code'];
+	                $usedProjects[$projectCode] = true;
+
                     // get available languages for project
                     $endpoint = $oauthServer . 'ptm/languageList';
                     $params = array(
-                        'projectCode' => $p['code']
+                        'projectCode' => $projectCode
                     );
                     $reqLang = ELOAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
                     $reqLang->sign_request($hmac_method, $consumer, $token);
@@ -299,7 +309,7 @@ class Easyling_Admin {
                             $languages[] = $lang['name'];
                         }
                         $project = new Project($p['name'], $p['code'], $languages);
-                        $this->easylingInstance->getPtm()->getFrameworkService()->addAvailableProject($project);
+                        $ptmService->addAvailableProject($project);
                         $projectSourceLangs = get_option('easyling_source_langs', array());
                         $mergedProjectSourceLangs = array_merge($projectSourceLangs, array($p['code'] => $p['sourceLanguage']));
                         update_option('easyling_source_langs', $mergedProjectSourceLangs);
@@ -313,6 +323,23 @@ class Easyling_Admin {
                         throw new Exception("Could not retrieve language list for project: " . $p['name']);
                     }
                 }
+
+	            // remove the _not_ received projects
+	            $storedProjectList = $ptmService->getAvailableProjects();
+	            foreach ($storedProjectList as $storedProject) {
+		            $stProjectCode = $storedProject->getProjectCode();
+		            // do not remove the currently used project
+
+		            if (!isset($usedProjects[$stProjectCode])) {
+			            // do not delete the currently linked project
+			            if (get_option('easyling_linked_project', null) == $stProjectCode ) {
+				            // TODO: display error message
+			            } else {
+			                $ptmService->removeAvailableProjectByCode($stProjectCode);
+			            }
+		            }
+	            }
+
                 // by now we should have all languages and also all languages
                 // set the status
                 $optEasyling = get_option('easyling');
