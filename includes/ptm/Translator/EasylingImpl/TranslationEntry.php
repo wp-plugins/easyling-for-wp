@@ -51,6 +51,32 @@ class TranslationEntry implements Serializable
 	}
 
 	/**
+	 * @return bool
+	 */
+	public function isTargetEmpty()
+	{
+		// TODO: check
+		$target = $this->translation;
+		return empty($target);
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getKeyName() {
+		// TODO: maybe redundant with getKey (need for Translator.php)
+		return $this->getKey();
+	}
+
+	/**
+	 * @return DOMDocument
+	 */
+	public function getTargetAsBlock() {
+		return XMLUtil::createDocument(
+			"<?xml version=\"1.0\" encoding=\"UTF-8\"?><block>".$this->getTarget()."</block>");
+	}
+
+	/**
 	 * @return string
 	 */
 	public function getPath()
@@ -107,6 +133,7 @@ class TranslationEntry implements Serializable
 	{
 		$this->translation = $t;
 	}
+
 
 	/**
 	 * @return NormalizedText

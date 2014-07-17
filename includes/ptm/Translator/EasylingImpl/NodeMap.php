@@ -58,4 +58,14 @@ class NodeMap
 		throw new InvalidArgumentException("getKeyString got ".gettype($key)." instead of string or DOMNode");
 	}
 
+	public function clear() {
+		$this->map = array();
+	}
+
+	public function putAll(NodeMap $nodeMap) {
+		foreach ($nodeMap as $key=>$value) {
+			$this->put($key, $value);
+		}
+	}
+
 }

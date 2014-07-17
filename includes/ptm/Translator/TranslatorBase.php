@@ -40,4 +40,45 @@ class TranslatorBase
 		return $value;
 	}
 
+
+	// JavaOnly in Translator.java
+	protected function changeBlock(DOMElement $block, TranslationEntry $te) {
+		return ;
+	}
+
+	// JavaOnly in Translator.java
+	protected function startDeferredUpdates() {
+		return ;
+	}
+
+	// JavaOnly in Translator.java
+	protected function finishDeferredUpdates() {
+		return ;
+	}
+
+	/**
+	 * @param String $src
+	 * @param DOMAttr $attributeNode
+	 * @return boolean
+	 */
+	protected function deferUpdate($src, $attributeNode) {
+		return false;
+	}
+
+	protected function swapStyles($element) {
+		return ;
+	}
+
+	protected function attributeNodeTranslation($attributeNode) {
+		return null;
+	}
+
+	protected function nodeValueTranslation($node) {
+		return null;
+	}
+
+	public static function getClassName() {
+		return "Translator";
+	}
+
 }

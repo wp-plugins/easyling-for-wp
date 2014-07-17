@@ -10,9 +10,15 @@ class WebProxy {
 	 * @var StringSet
 	 */
 	public static $IGNORED_TAGS;
+
+	/**
+	 * @var StringSet
+	 */
+	public static $IGNORED_TAG_CONTENT;
 }
 
-WebProxy::$IGNORED_TAGS = immutableTightSet("script", "style", "noscript", "textarea");
+WebProxy::$IGNORED_TAGS = immutableTightSet("script", "style", "noscript", "easyling:x");
+WebProxy::$IGNORED_TAG_CONTENT = immutableTightSet("textarea");
 
 class XMLUtil {
 
@@ -47,6 +53,15 @@ class StringSet
 	{
 		if (!$this->contains($str))
 			$this->container[] = $str;
+	}
+}
+
+class Lists {
+	/**
+	 * @return JList
+	 */
+	static public function newArrayList() {
+		return new JList(func_get_args());
 	}
 }
 

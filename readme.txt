@@ -2,8 +2,8 @@
 Contributors: dvarga
 Tags: easyling, translation, multilanguage, website translation, wordpress translation, translation plugin
 Requires at least: 3.5
-Tested up to: 3.5
-Stable tag: 0.9.16
+Tested up to: 3.9.1
+Stable tag: 0.9.17
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,9 +32,9 @@ Or
 == Installation ==
 
 1. Upload the plugin to the `/wp-content/plugins` directory
-1. Activate the plugin on the 'Plugins' menu in WordPress
-1. Link your Wordpress Installation with your Easyling Account
-1. Select your project, available languages and translations under the `Easyling` menu
+2. Activate the plugin on the 'Plugins' menu in WordPress
+3. Link your Wordpress Installation with your Easyling Account
+4. Select your project, available languages and translations under the `Easyling` menu
 
 For more information please visit the FAQ.
 
@@ -86,6 +86,12 @@ Whenever we hear about such a case, we jump on it and give a fix.
 2. Demonstrates how to "link" the WP Installation with Easyling Services
 
 == Changelog ==
+
+= 0.9.17 =
+* Implemented Easyling features: Group pages, Pattern matching, Ignore classes
+* Added alternative page languages
+* Fixed HTML lang attribute
+* Fixed rewrite rules
 
 = 0.9.16 =
 * Updated short description

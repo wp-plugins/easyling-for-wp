@@ -89,6 +89,7 @@ class Easyling_Admin {
                     $req->sign_request($hmac_method, $consumer, $token);
                     $res = $req->curlit($req->to_url());
                     $this->checkOAuthInvalidToken($res, 'admin.php?page=easyling&transfer=1');
+                    $this->easylingInstance->getPtm()->getFrameworkService()->setProjectAttributesByELResponse($project, $res['response']);
                 }
             } catch (Exception $e) {
                 $this->easylingInstance->getPtm()->sendErrorReport($e, PTMException::LEVEL_ERROR, array('method:'       => 'startTransfer', 'oauth_request' => $req, 'oauth_resp'    => $res));
@@ -121,16 +122,22 @@ class Easyling_Admin {
             unset($_SESSION['oauth']);
             unset($_SESSION['oauth_internal_redirect']);
 
+
 	        delete_option('easyling_id');
             delete_option('easyling_available_locales');
             delete_option('easyling_project_languages');
             delete_option('easyling_linked_project');
             delete_option('easyling_consent');
             delete_option('easyling_access_tokens');
+            delete_option('easyling_language_selector');
+            delete_option('easyling_multidomain');
+            delete_option('easyling_source_langs');
 	        // PTM put this option
             delete_option('easyling_availableProjects');
+
             // set the status
             $optEasyling = get_option('easyling');
+	        //$optEasyling['']
             $optEasyling['status'] = Easyling::STATUS_INSTALLED;
             update_option('easyling', $optEasyling);
             header("Location: " . get_admin_url(null, 'admin.php?page=easyling', 'admin'));

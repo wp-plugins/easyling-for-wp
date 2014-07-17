@@ -94,6 +94,8 @@ class PTMService
 		$projectPageStorage->lock();
 		foreach ($tem as $simpleURL=>$newTranslationEntriesMap)
 		{
+			$simpleURL = preg_replace('/@(\d+)$/', '', $simpleURL);
+
 			$modified = false;
 
 			// fetch simple URL from existing db
@@ -159,13 +161,24 @@ class PTMService
 	{
 		try {
 			$p = $this->getProjectByCode($projectCode);
-			$tem = $this->easylingService->getTranslationEntriesMapsByResponse($easylingResponse);
+			$tem = $this->easylingService->getTranslationEntriesMapsByResponse($easylingResponse, $p);
 			$this->mergeProjectTranslations($p, $targetLanguage, $tem);
 		}
 		catch (Exception $e)
 		{
 			PTM::sendErrorReport($e);
 		}
+	}
+
+	/**
+	 * @param Project $project
+	 * @param string $easylingResponse
+	 */
+	public function setProjectAttributesByELResponse($project, $easylingResponse) {
+		//$projectAttributes = $easylingResponse['project'];
+
+		$this->easylingService->setProjectAttributesByResponse($project, $easylingResponse);
+		$this->saveAvailableProjects();
 	}
 
 	/**

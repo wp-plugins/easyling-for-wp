@@ -6,6 +6,8 @@
  */
 
 require_once dirname(__FILE__) . '/Math.php';
+require_once dirname(__FILE__) . '/MatchResult.php';
 require_once dirname(__FILE__) . '/Matcher.php';
+require_once dirname(__FILE__) . '/CharMatcher.php';
 require_once dirname(__FILE__) . '/Pattern.php';
 require_once dirname(__FILE__) . '/Node.php';

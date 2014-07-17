@@ -12,6 +12,10 @@ class NodeSet extends NodeMap implements IteratorAggregate
 		parent::put($node, $node);
 	}
 
+	public function addAll(NodeSet $nodeSet) {
+		parent::putAll($nodeSet);
+	}
+
 	public function getIterator()
 	{
 		return new ArrayIterator($this->map);

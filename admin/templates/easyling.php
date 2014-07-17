@@ -180,7 +180,7 @@
                                             </label>
                                             <span style="line-height: 19px;">Domain name (without http://):</span>
                                             <input type="text" name="easyling_project_languages[<?php echo $l ?>][domain]" value="<?php echo $val ?>" onclick="javascript:this.value = '';" />
-                                            <span style="margin-left: 35px" id="easyling_project_dom_<?php echo $l ?>">Reachable on: <a href="<?php echo $val ?>" target="_easyling_preview"><?php echo $val ?>/</a></span>
+                                            <span style="margin-left: 35px" id="easyling_project_dom_<?php echo $l ?>">Reachable on: <a href="http://<?php echo $val ?>" target="_easyling_preview"><?php echo 'http://'.$val ?>/</a></span>
                                             <br />
                                             <script type="text/javascript">
             <?php $fn = "change_" . str_replace('-', '_', $l) ?>
@@ -241,7 +241,7 @@
                                             jQuery('#easyling_setting_form').submit(function() {
                                                 return false;
                                             });
-                                        })
+                                        });
                                         jQuery('#easyling_language_selector').change(function() {
                                             jQuery('#easyling_setting_form').submit();
                                         });
@@ -257,7 +257,7 @@
                                                     overlayClose: false,
                                                     closeClass: 'simplemodal-close-hidden'
                                                 });
-                                            })
+                                            });
 <?php endif; ?>
                                     })
 </script>
@@ -277,6 +277,7 @@ if ($consent !== null && !$option['tutorial_shown']):
             jQuery('#modal-tutorial').modal({
                 minHeight: 630,
                 minWidth: 875,
+	            overlayClose: true,
                 containerCss: {
                     'padding': '0px',
                     'background-color': 'black'
@@ -296,7 +297,7 @@ if ($consent !== null && !$option['tutorial_shown']):
              */
             function updateArrows() {
                 var el = jQuery("#modal-tutorial .tutorial");
-                var bgpos = parseInt(el.css('background-position').split(" ")[0])
+                var bgpos = parseInt(el.css('background-position').split(" ")[0]);
                 if (bgpos >= bgPositions.max) {
                     // right is possible
                     jQuery("#modal-tutorial .nav-left img").hide();

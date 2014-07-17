@@ -3,7 +3,7 @@
 /*
   Plugin Name: Easyling for Wordpress
   Description: Easyling is a Website translation tool, suitable for DIY work.
-  Version: 0.9.16
+  Version: 0.9.17
   Plugin URI: http://easyling.com
  */
 
@@ -11,7 +11,7 @@ if (!class_exists('Easyling')) {
 
     define('EASYLING_PATH', WP_PLUGIN_DIR . '/easyling-for-wp');
     define('EASYLING_URL', WP_PLUGIN_URL . '/easyling-for-wp');
-    define('EASYLING_VERSION', '0.9.16');
+    define('EASYLING_VERSION', '0.9.17');
 
     require_once dirname(__FILE__) . "/includes/ptm/KeyValueStorage/FileStorage.php";
     require_once dirname(__FILE__) . '/includes/ptm/PTM.php';
@@ -149,25 +149,24 @@ if (!class_exists('Easyling')) {
             // add custom URL structure
             add_filter('admin_init', array(&$this, 'flush_rewrite_rules'));
 
-            // some rewrite rules
-            add_filter('page_rewrite_rules', array(&$this, 'filter_rewrite_rules'));
-            add_filter('post_rewrite_rules', array(&$this, 'filter_rewrite_rules_home'));
-            add_filter('category_rewrite_rules', array(&$this, 'filter_rewrite_rules'));
-            add_filter('date_rewrite_rules', array(&$this, 'filter_rewrite_rules'));
-            add_filter('author_rewrite_rules', array(&$this, 'filter_rewrite_rules'));
-            add_filter('tag_rewrite_rules', array(&$this, 'filter_rewrite_rules'));
-            add_filter('rewrite_rules_array', array(&$this, 'filter_rewrite_rules_array'));
+            // set all rewrite rules
+	        add_filter('rewrite_rules_array', array(&$this, 'filter_rewrite_rules_all'));
 
             // some filters to display the proper links
             add_action('wp', array(&$this, 'wp'));
-            add_filter('page_link', array(&$this, 'filter_links'));
-            add_filter('post_link', array(&$this, 'filter_links'));
-            add_filter('category_link', array(&$this, 'filter_links'));
-            add_filter('year_link', array(&$this, 'filter_links'));
-            add_filter('month_link', array(&$this, 'filter_links'));
-            add_filter('tag_link', array(&$this, 'filter_links'));
 
+	        // add into head link rel="alternate" hreflang="es" href="http://es.example.com/" />
+	        add_action('wp_head', array(&$this, 'add_alt_lang_html_links'));
 
+	        // 'the_permalink' is skipped against duplicated rewrite
+	        $link_types = array('page_link','post_link','category_link','year_link','month_link','tag_link',
+		        'post_type_link','attachment_link','author_feed_link','author_link','comment_reply_link',
+		        'day_link','feed_link','get_comment_author_link','get_comment_author_url_link',/*'the_permalink',*/
+		        'term_link '
+	        );
+	        foreach ($link_types as $link_type) {
+		        add_filter($link_type, array(&$this, 'filter_links'));
+	        }
             add_filter('query_vars', array(&$this, 'queryVars'));
 
             if ($this->settings['status'] == self::STATUS_AUTHED) {
@@ -218,17 +217,26 @@ if (!class_exists('Easyling')) {
             wp_localize_script('easyling', 'easyling_languages', $localizationScript);
         }
 
-        public function filter_rewrite_rules_array($rules) {
-            // add paged nav for home
-            $new_rules = array(
-            );
-            $available_languages = $this->get_available_languages();
-            global $wp_rewrite;
-            if (!empty($available_languages)) {
-                $new_rules['(' . implode('|', $available_languages) . ')/' . $wp_rewrite->pagination_base . '/([0-9]{1,})/{0,1}$'] = 'index.php?easyling=$matches[1]&paged=$matches[2]';
-            }
-            $new_rules += $rules;
-            return $new_rules;
+        public function filter_rewrite_rules_all($rules) {
+
+	        $lang_pattern = $this->get_rewrite_rule_lang_pattern();
+
+	        if (empty($lang_pattern))
+		        return $rules;
+
+	        $new_rules = array();
+
+	        $available_languages = $this->get_available_languages();
+
+	        // rule for root
+	        $new_rules['(' . implode('|', $available_languages) . ')/{0,1}$'] = 'index.php?easyling=$matches[1]';
+
+	        foreach ($rules as $pattern=>$rule) {
+		        $this->filter_rewrite_rule($pattern, $rule, $lang_pattern);
+		        $new_rules[$pattern] = $rule;
+	        }
+
+	        return $new_rules;
         }
 
         public function ajax_oauth_push() {
@@ -293,13 +301,14 @@ if (!class_exists('Easyling')) {
             trigger_error($str, E_USER_WARNING);
         }
 
-        /**
-         * Determines the language of the request
-         * @global WP_Query $wp_query
-         * @return [] array of `targetLanguage`, `targetLocale`, `originalRequestURI`
-         */
-        public function detect_language() {
-            global $wp_query;
+	    /**
+	     * Determines the language of the request
+	     * @param WP_Query $wp_query
+	     * @return void [] array of `targetLanguage`, `targetLocale`, `originalRequestURI`
+	     */
+        public function detect_language($wp_query) {
+
+	        $checkResourceURL = false;
 
             if (!$this->multidomain) {
 
@@ -311,13 +320,26 @@ if (!class_exists('Easyling')) {
                     $this->targetLocale = $this->matchLanguageToLocale($language);
                     $this->originalRequestURI = str_ireplace('/' . $this->targetLanguage . '/', '/', $_SERVER['REQUEST_URI']);
                 } else {
-                    // TODO: something is screwed up
+	                // something screwed up
                 }
             } else {
                 $this->targetLocale = $this->matchDomainToLocale();
                 $this->originalRequestURI = $_SERVER['REQUEST_URI'];
+	            $checkResourceURL = true;
             }
 
+	        if ($checkResourceURL) {
+		        $pcode = get_option('easyling_linked_project');
+		        if (!empty($pcode)) {
+			        $p = $this->getPtm()->getFrameworkService()->getProjectByCode($pcode);
+			        $fullOriginalURL = get_bloginfo('url').$this->originalRequestURI;
+			        $redirURL = $this->getPtm()->getURLRedirection($p, $this->targetLocale, $fullOriginalURL);
+			        if ($redirURL) {
+			            wp_redirect($redirURL);
+				        exit();
+			        }
+		        }
+	        }
             return;
         }
 
@@ -383,11 +405,14 @@ if (!class_exists('Easyling')) {
         }
 
         public function filter_rewrite_rules_home($rewrite_rules) {
+
             $available_languages = $this->get_available_languages();
             if (empty($available_languages))
                 return $rewrite_rules;
 
             global $wp_rewrite;
+
+//	        error_log(json_encode($rewrite_rules));
 
             $new_rewrite_rules['(' . implode('|', $available_languages) . ')/{0,1}$'] = 'index.php?easyling=$matches[1]';
             $new_rewrite_rules += $this->filter_rewrite_rules($rewrite_rules);
@@ -396,42 +421,71 @@ if (!class_exists('Easyling')) {
             return $new_rewrite_rules;
         }
 
-        public function filter_rewrite_rules($rewrite_rules) {
-            $new_rewrite_rules = array(
-            );
+	    private $rewrite_lang_pattern = null;
 
-            $lang_pattern = "";
-            $available_languages = $this->get_available_languages();
+	    public function get_rewrite_rule_lang_pattern() {
 
-            if (empty($available_languages))
-                return $rewrite_rules;
+		    if ($this->rewrite_lang_pattern !== null)
+			    return $this->rewrite_lang_pattern;
 
-            foreach ($available_languages as $lang) {
-                $lang_pattern .= $lang . "/|";
-            }
+		    $lang_pattern = "";
+		    $available_languages = $this->get_available_languages();
 
-//		    print_r($rewrite_rules);
+		    if (empty($available_languages))
+			    return $this->rewrite_lang_pattern="";
 
-            foreach ($rewrite_rules as $pattern => $rewrite_rule) {
-                /* if (strpos($rewrite_rule, "name") === FALSE &&
+		    foreach ($available_languages as $lang) {
+			    $lang_pattern .= $lang . "/|";
+		    }
+
+		    $this->rewrite_lang_pattern = $lang_pattern;
+
+		    return $this->rewrite_lang_pattern;
+	    }
+
+	    public function filter_rewrite_rule(&$pattern, &$rule, $lang_pattern = null) {
+		    if ($lang_pattern === null)
+			    $lang_pattern = $this->get_rewrite_rule_lang_pattern();
+
+		    /* if (strpos($rewrite_rule, "name") === FALSE &&
                   strpos($rewrite_rule, "pagename") === FALSE &&
                   strpos($rewrite_rule, "category_name") === FALSE &&
                   strpos($rewrite_rule, "year") === FALSE) {
                   $new_rewrite_rules[$pattern] = $rewrite_rule;
                   continue;
                   } */
-                if (strpos($rewrite_rule, "attachment") !== FALSE) {
-                    $new_rewrite_rules[$pattern] = $rewrite_rule;
-                    continue;
-                }
-                $new_pattern = "($lang_pattern)" . $pattern;
-                $new_rewrite_rules[$new_pattern] = preg_replace_callback('/matches\[(\d*?)\]/', array(
-                            &$this,
-                            "_preg_replace_callback"), $rewrite_rule) . '&easyling=$matches[1]';
+
+
+		    if (strpos($rule, "attachment") !== FALSE) {
+			    return;
+		    }
+		    $new_pattern = "($lang_pattern)" . $pattern;
+		    $new_rewrite_rule = preg_replace_callback('/matches\[(\d*?)\]/', array(
+				    &$this,
+				    "_preg_replace_callback"), $rule) . '&easyling=$matches[1]';
+
+		    $pattern = $new_pattern;
+		    $rule = $new_rewrite_rule;
+	    }
+
+        public function filter_rewrite_rules($rewrite_rules) {
+
+//	        error_log(json_encode($rewrite_rules));
+
+            $new_rewrite_rules = array();
+
+	        $lang_pattern = $this->get_rewrite_rule_lang_pattern();
+
+	        if (empty($lang_pattern)) {
+		        return $rewrite_rules;
+	        }
+
+            foreach ($rewrite_rules as $pattern => $rewrite_rule) {
+                $this->filter_rewrite_rule($pattern, $rewrite_rule, $lang_pattern);
+	            $new_rewrite_rules[$pattern] = $rewrite_rule;
             }
-//print_r($new_rewrite_rules);
+
             return $new_rewrite_rules;
-//		    return $rewrite_rules;
         }
 
         public function _preg_replace_callback($match) {
@@ -465,10 +519,48 @@ if (!class_exists('Easyling')) {
             return $translated;
         }
 
+	    public function isResponseTranslatable($buffer) {
+		    $ptm = $this->getPtm();
+
+		    return $ptm->isResponseTranslatable(headers_list(), $buffer);
+	    }
+
+	    public function getAlternativeLangURLs() {
+		    // TODO: skip currently displayed language
+		    $langURLs = easyling_get_translation_urls(false);
+		    $localeURLs = array();
+		    $langCodeURLs = array();
+		    foreach ($langURLs['translations'] as $locale=>$langData) {
+			    $url = $langData['url'];
+
+			    list($langCode, $countryCode) = explode('-', $locale, 2);
+			    $localeURLs[$locale] = $url;
+			    if (!empty($countryCode)) {
+				    $langCodeURLs[$langCode] = $url;
+			    }
+		    }
+
+		    $sourceLocales = get_option('easyling_source_langs');
+		    $pcode = get_option('easyling_linked_project');
+
+		    $urlMap = array_merge($localeURLs, $langCodeURLs);
+
+		    $urlMap['x-default'] = $urlMap[$sourceLocales[$pcode]];
+
+		    return $urlMap;
+	    }
+
+        public function add_alt_lang_html_links() {
+	        $urlMap = $this->getAlternativeLangURLs();
+
+	        foreach ($urlMap as $langCode=>$url) {
+		        echo '<link rel="alternate" hreflang="'.htmlentities($langCode).'" href="'.htmlentities($url).'" />'."\n";
+	        }
+        }
+
         public function ob_callback($buffer) {
-//            return $buffer;
             // this is the place to modify the markup
-            if ($this->targetLocale !== null) {
+            if ($this->isResponseTranslatable($buffer) && $this->targetLocale !== null) {
                 $pcode = get_option('easyling_linked_project');
 
                 // TODO, replace the multidomain domain with original
@@ -479,6 +571,7 @@ if (!class_exists('Easyling')) {
                 } else {
                     
                 }
+
                 $buffer = $this->translate($pcode, $original_url, $this->targetLocale, $buffer);
             }
             return $buffer;
@@ -704,7 +797,7 @@ if (!class_exists('Easyling')) {
          */
         public function getPtm() {
             if ($this->ptm === null) {
-                $this->ptm = new PTM();
+                $this->ptm = PTM::get();
                 $this->ptm->enableErrorReporting($this->consent);
                 $projectPageStorage = new WPDbStorage(KeyValueStorage::ITEMTYPE_PROJECTPAGE);
                 $optionStorage = new WPOptionStorage(KeyValueStorage::ITEMTYPE_OPTION);
@@ -742,11 +835,6 @@ if (!class_exists('Easyling')) {
          */
         public function filter_available_locales($locales) {
             $ret = $locales;
-//	        print_r($locales);
-//	        die();
-//            foreach ($locales as $k => $v) {
-//                $ret[substr($k, 0, 2)] = $v;
-//            }
             $pcode = get_option('easyling_linked_project');
             $sources = get_option('easyling_source_langs', array());
             if (isset($sources[$pcode])) {
@@ -788,11 +876,16 @@ if (!class_exists('Easyling')) {
      * @since 0.9.10
      * @return array Multi-dimensional array of data for translations
      */
-    function easyling_get_translation_urls() {
+    function easyling_get_translation_urls($setCoordinates = true) {
+	    /** @var Easyling $easyling_instance */
         global $easyling_instance;
         $locales = easyling_get_locales();
         $origURL = $easyling_instance->getOriginalTranslateURL();
-        $coordinates = easyling_flag_coordinates();
+	    if ($setCoordinates)
+            $coordinates = easyling_flag_coordinates();
+	    else
+		    $coordinates = array();
+
         $translationURLs = array(
             'translations' => array()
         );
@@ -809,30 +902,40 @@ if (!class_exists('Easyling')) {
                 }
             } else {
                 $url = null;
+	            // the original language is displayed
                 if ($origURL == null) {
-                    $url = $canonical . '/' . $v . $_SERVER['REQUEST_URI'];
-                } else {
+	                if (empty($v))
+		                $url = $canonical . $_SERVER['REQUEST_URI'];
+                    else
+	                    $url = $canonical . '/' . $v . $_SERVER['REQUEST_URI'];
+                }
+                // the translated site displayed
+                else {
                     // url prefixes are used such as /hu/ or /de/
-                    $url = empty($v) ? $canonical . $origURL : $canonical . '/' . $v . $origURL;
+                    $url = empty($v) ? ($canonical . $origURL) : ($canonical . '/' . $v . $origURL);
                 }
             }
 
-	        list($langCode, $countryCode) = explode("-", $locale);
+	        list($langCode, $countryCode) = explode("-", $locale, 2);
 	        $countryCode = strtolower($countryCode);
-            $translationURLs['translations'][$locale] = array(
-                'url' => $url,
-                'coords' => $coordinates[$countryCode]);
+	        $localeData = array('url' => $url);
+	        if ($setCoordinates) {
+		        $localeData['coords'] = $coordinates[$countryCode];
+	        }
+
+            $translationURLs['translations'][$locale] = $localeData;
         }
         return $translationURLs;
     }
 
-    /**
-     * Retrieves the available locales from Easyling (eg. en-US)
-     *
-     * @global Easyling $easyling
-     * @since 0.9.10
-     * @return array Array of language => URL Part
-     */
+	/**
+	 * Retrieves the available locales from Easyling (eg. en-US)
+	 *
+	 * @throws Exception
+	 * @global Easyling $easyling
+	 * @since 0.9.10
+	 * @return array Array of language => URL Part
+	 */
     function easyling_get_locales() {
         // does not work on admin
         if (is_admin())
@@ -858,7 +961,3 @@ if (version_compare($wp_version, '3.2') >= 0) {
     global $easyling_instance;
     $easyling_instance = Easyling::getInstance();
 }
-
-//sourceLanguage
-
-

@@ -16,22 +16,25 @@ class EncodeUtil {
 	public static function matcherForClassNames() {
 		$classNames = func_get_args();
 
-		$pattern = "^(?:.*\\s)?";
+		if (is_array($classNames)) {
+			$classNames = $classNames[0];
+		}
+
+		$pattern = '';
 		$first = true;
 
 		foreach ($classNames as $className)
 		{
+			if(empty($className))
+				continue;
 			if($first)
 				$first = false;
 			else
 				$pattern.="|";
-			// TODO: implement correct quote method
-			$pattern.=$className;
+			$pattern.='\b'.Pattern::quote($className).'\b';
 		}
 
-		$pattern.="(?:\\s.*)?$";
-
-		return new Pattern($pattern);
+		return Pattern::compile($pattern);
 	}
 
 	public static function htmlEscape($str)
@@ -64,10 +67,9 @@ class EncodeUtil {
 	 */
 	public static function simplifyURL($url, $ignoreParams = null, $ignoreHash = false,
 	                                   $canonicalHost = null, $hostAliases = null) {
-		//return simplifyURL(s, null, null, null);
 		$urlParts = parse_url($url);
 
-		// TODO: exception???
+		// TODO: throw an exception instead of returning the original URL
 		if ($urlParts === FALSE)
 			return $url;
 
@@ -100,6 +102,16 @@ class EncodeUtil {
 					return self::buildURL($urlParts, array('path'=>$path, 'query'=>null));
 
 				// complex but it tries to create the least amount of objects
+				$paramPrefixes = array();
+				$paramNames = array();
+
+				foreach ($ignoreParams as $ignoreParam) {
+					$ipLength = strlen($ignoreParam);
+					if ($ignoreParam[$ipLength-1] == "*") {
+						$paramPrefixes[] = substr($ignoreParam, 0, $ipLength-1);
+					} else
+						$paramNames[] = $ignoreParam;
+				}
 
 				$newQuery = "";
 				$i = 0;
@@ -126,7 +138,19 @@ class EncodeUtil {
 					if($eq < 0)
 						$eq = strlen($query);
 
-					if(in_array(urldecode(substr($query, $i, $eq-$i)), $ignoreParams))
+					$paramName = substr($query, $i, $eq-$i);
+					$paramName = urldecode($paramName);
+					$skip = in_array($paramName, $ignoreParams);
+					if ($skip == false && !empty($paramPrefixes)) {
+						foreach ($paramPrefixes as $paramPrefix) {
+							if (strncmp($paramName, $paramPrefix, strlen($paramPrefix)) == 0) {
+								$skip = true;
+								break;
+							}
+						}
+					}
+
+					if($skip)
 					{
 						if($i > $lastOK)
 						{

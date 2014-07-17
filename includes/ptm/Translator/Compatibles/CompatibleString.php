@@ -71,6 +71,20 @@ class CompatibleString
 	}
 
 	/**
+	 * @return bool
+	 */
+	public function isEmpty() {
+		return empty($this->str);
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isNull() {
+		return $this->str === null;
+	}
+
+	/**
 	 * @param $str
 	 * @return CompatibleString
 	 */

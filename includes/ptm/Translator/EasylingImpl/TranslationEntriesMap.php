@@ -14,4 +14,5 @@ class TranslationEntriesMap extends Map
 	public function get($key) {
 		return parent::get($key);
 	}
+
 }

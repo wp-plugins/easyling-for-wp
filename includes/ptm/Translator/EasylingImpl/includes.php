@@ -18,3 +18,8 @@ require_once dirname(__FILE__) . '/TranslateUtil.php';
 require_once dirname(__FILE__) . '/MissingTranslation.php';
 require_once dirname(__FILE__) . '/PathBuilder.php';
 require_once dirname(__FILE__) . '/CompatibleXMLSerializer.php';
+require_once dirname(__FILE__) . '/HtmlMissingTranslation.php';
+require_once dirname(__FILE__) . '/PathIgnoreRules.php';
+require_once dirname(__FILE__) . '/xml/includes.php';
+require_once dirname(__FILE__) . '/dom/includes.php';
+require_once dirname(__FILE__) . '/BlockXMLBuilder.php';

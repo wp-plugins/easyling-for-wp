@@ -84,4 +84,11 @@ class Map implements IteratorAggregate, ArrayAccess
 	{
 		unset($this->map[$offset]);
 	}
+
+	/**
+	 * @return string
+	 */
+	public function __toString() {
+		return json_encode($this->map);
+	}
 }

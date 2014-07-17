@@ -7,4 +7,5 @@
 
 require_once dirname(__FILE__) . '/ProjectLanguage.php';
 require_once dirname(__FILE__) . '/Project.php';
+require_once dirname(__FILE__) . '/ProjectConfig.php';
 

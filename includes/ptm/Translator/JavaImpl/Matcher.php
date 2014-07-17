@@ -87,7 +87,7 @@ class Matcher extends Matcher_Abstract {
         $this->_pattern = $pattern;
         $p = $pattern->pattern();
         if (!empty($p))
-            preg_match_all($p, $str, $this->_matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+            preg_match_all($pattern->preg_pattern(), $str, $this->_matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
     }
 
     public function find() {
@@ -108,8 +108,8 @@ class Matcher extends Matcher_Abstract {
         if ($this->_matchesPointer === null)
             throw new Exception("You need to call find() before end()");
         if ($group === null)
-            return $this->_matches[$this->_matchesPointer][0][1] + strlen($this->group());
-        return $this->_matches[$this->_matchesPointer][$group][1] + strlen($this->group($group));
+            return $this->_matches[$this->_matchesPointer][0][1] + mb_strlen($this->group());
+        return $this->_matches[$this->_matchesPointer][$group][1] + mb_strlen($this->group($group));
     }
 
     public function start($group = null) {
@@ -121,17 +121,17 @@ class Matcher extends Matcher_Abstract {
     }
 
     public function replaceAll($replacement = "") {
-        return preg_replace($this->_pattern->pattern(), $replacement, $this->_str);
+        return preg_replace($this->_pattern->preg_pattern(), $replacement, $this->_str);
     }
 
     public function replaceFirst($replacement = "") {
-        return preg_replace($this->_pattern->pattern(), $replacement, $this->_str, 1);
+        return preg_replace($this->_pattern->preg_pattern(), $replacement, $this->_str, 1);
     }
 
     public function reset($str = null) {
         if ($str != null)
             $this->_str = $str;
-        preg_match_all($this->_pattern->pattern(), $this->_str, $this->_matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+        preg_match_all($this->_pattern->preg_pattern(), $this->_str, $this->_matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
         $this->_matchesPointer = null;
     }
 
@@ -141,9 +141,20 @@ class Matcher extends Matcher_Abstract {
         return $this->_matches[$this->_matchesPointer][$group][0];
     }
 
+	public function groupCount() {
+		// Group zero denotes the entire pattern by convention. It is not included in this count.
+		return count($this->_matches[$this->_matchesPointer]) - 1;
+	}
+
     public function matches() {
         return !empty($this->_matches);
     }
 
+	/**
+	 * @return MatchResult
+	 */
+	public function getResult() {
+		return new MatchResult($this->_matches[$this->_matchesPointer]);
+	}
 }
 

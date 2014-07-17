@@ -49,7 +49,20 @@ class PTM
 	 */
 	private $errorReportEnabled = false;
 
-	public function __construct()
+	/**
+	 * @var PTM
+	 */
+	private static $instance = null;
+
+	public static function get() {
+		if (self::$instance === null) {
+			self::$instance = new PTM();
+		}
+
+		return self::$instance;
+	}
+
+	private function __construct()
 	{
 		$this->storageManager = new KeyValueStorageManager();
 	}
@@ -245,6 +258,43 @@ class PTM
 		return file_get_contents(self::ERROR_REPORTING_URL, false, $context);
 	}
 
+	/**
+	 * @param Project $p
+	 * @param $targetLanguage
+	 * @return TranslationEntriesMap|null
+	 */
+	public function getGlobals(Project $p, $targetLanguage) {
+		$globalsKey = new ProjectPageKey($p->getProjectCode(), $targetLanguage, "easyling://globals");
+
+		if (!$this->getProjectPageStorage()->has($globalsKey))
+			return null;
+
+		return $this->getProjectPageStorage()->get($globalsKey);
+
+	}
+
+	/**
+	 * @param Project $p
+	 * @param string $targetLanguage
+	 * @param string $url
+	 * @return string|null
+	 */
+	public function getURLRedirection(Project $p, $targetLanguage, $url) {
+		$globals = $this->getGlobals($p, $targetLanguage);
+
+		if ($globals == null)
+			return null;
+
+		/** @var TranslationEntry[]|Map $te */
+		$te = $globals->get($url);
+
+		if ($te == null)
+			return null;
+
+		// get the first targetEntry
+		return $te->getIterator()->current()->getTarget();
+	}
+
 	public function translateProjectPage(Project $p, $remoteURL, $htmlContent, $targetLanguage,
 	                                     $resourceMap = array())
 	{
@@ -253,6 +303,21 @@ class PTM
 			// get translations for page
 			$tes = $this->getTranslationForPage($p, $targetLanguage, $remoteURL);
 
+			// if no available translation for page, try group pages
+			if ($tes == null) {
+				$ignoreRules = new PathIgnoreRules($p->getPathIgnoreRules());
+				$simpleURL = $p->simplifyURL($remoteURL);
+
+				// remove protocol and domain if exists
+				$simplePath = preg_replace('%^https{0,1}://[^/]*%', '', $simpleURL);
+
+				$matchedRule = $ignoreRules->getMatchedRule($simplePath);
+				if ($matchedRule !== null) {
+					$fullRule = $p->getPathURL($matchedRule);
+					$tes = $this->getTranslationForPage($p, $targetLanguage, $fullRule);
+				}
+			}
+
 			// if no available translation for page, start with an empty map
 			if ($tes == null) {
 				$tes = new Map();
@@ -260,11 +325,10 @@ class PTM
 
 			$manuals = array();
 
+			$globals = $this->getGlobals($p, $targetLanguage);
+
 			// get easyling globals
-			$globalsKey = new ProjectPageKey($p->getProjectCode(), $targetLanguage, "easyling://globals");
-			if ($this->getProjectPageStorage()->has($globalsKey)) {
-				/** @var $globals TranslationEntriesMap */
-				$globals = $this->getProjectPageStorage()->get($globalsKey);
+			if ($globals != null) {
 				foreach ($globals as $globalOriginal=>$tem) {
 					$tes->put($globalOriginal, $tem);
 				}
@@ -283,10 +347,13 @@ class PTM
 
 			$dom = $this->parseHTMLContent($htmlContent);
 
-			$translator = Translator::create();
+			$translator = new PTMTranslator($p);
 			$translator->setManualEntries($manuals);
 			$translator->setNormalizedLookup($tes);
+			$translator->setIgnoreRegexp($p->getIgnoreRegexp());
 			$translator->translateDocument($dom);
+
+			$translator->setLanguage($dom, $targetLanguage, $p);
 
 			$htmlContent = "<!DOCTYPE html>\n".$dom->saveHTML();
 			return $htmlContent;
@@ -298,6 +365,23 @@ class PTM
 		}
 
 		return $htmlContent;
+	}
+
+	/**
+	 * @param string|string[] $headers
+	 * @param string $response
+	 * @return bool
+	 */
+	public function isResponseTranslatable($headers, $response) {
+
+		$responseHeaders = new HTTPResponseHeaders($headers);
+
+		$contentType = $responseHeaders->getContentType();
+
+		if ($contentType == null)
+			return true;
+
+		return $contentType->isHTML();
 	}
 
 	/**

@@ -28,21 +28,16 @@ class EasylingService
 
 	/**
 	 * @param string $response
+	 * @param Project|null $p
 	 * @return TranslationEntriesMap[]
 	 */
-	public function getTranslationEntriesMapsByResponse($response)
+	public function getTranslationEntriesMapsByResponse($response, $p = null)
 	{
-            $response = json_decode($response, true);
-//		$project = $response['project'];
-		//$projectName = $project['name'];
-//		$ignoredParams = $project['ignored'];
-//		$aliases = $project['aliases'];
+		$response = json_decode($response, true);
+
 //		$cursor = $response['cursor'];
 		$dictionary = $response['dictionary'];
-                file_put_contents('/tmp/dic.txt', json_encode($response));
-
-//		$p->setIgnoredParams($ignoredParams);
-//		$p->setHostAliases($aliases);
+//		file_put_contents('/tmp/dic.txt', json_encode($response));
 
 		/** @var TranslationEntriesMap[] $pageTranslations  */
 		$pageTranslations = array();
@@ -85,7 +80,7 @@ class EasylingService
 			"targetLanguage"=>$targetLanguage, "cursor"=>$cursor));
 
 		$response = $this->getResponseFromJSONResponse($jsonResponse);
-		return $this->getTranslationEntriesMapsByResponse($response);
+		return $this->getTranslationEntriesMapsByResponse($response, $p);
 	}
 
 	/**
@@ -118,6 +113,32 @@ class EasylingService
 //		return new Map();
 
 		return null;
+	}
+
+	/**
+	 * @param Project $project
+	 * @param string $easylingResponse
+	 */
+	public function setProjectAttributesByResponse($project, $easylingResponse) {
+
+		$responseJSON = $this->getResponseFromJSONResponse($easylingResponse);
+
+		$projectAttr = $responseJSON['project'];
+
+		file_put_contents('/tmp/el_resp.txt', json_encode($projectAttr));
+
+//		$projectName = $project['name'];
+		$ignoredParams = $projectAttr['ignored'];
+		$aliases = $projectAttr['aliases'];
+		$ignoreClasses = $projectAttr['ignoreClasses'];
+		$pathIgnoreRules = $projectAttr['pathIgnoreRules'];
+		$ignoreRegexp = $projectAttr['ignoreRegexp'];
+
+		$project->setIgnoredParams($ignoredParams);
+		$project->setHostAliases($aliases);
+		$project->setIgnoreClasses($ignoreClasses);
+		$project->setPathIgnoreRules($pathIgnoreRules);
+		$project->setIgnoreRegexp($ignoreRegexp);
 	}
 
 	private function getResponseFromJSONResponse($easylingJSONResponse)

@@ -23,14 +23,6 @@ class MissingTranslation {
 		$this->path = $path;
 	}
 
-	public function setHtmlNode($n) {
-		$this->htmlNode = $n;
-	}
-
-	public function getHtmlNode() {
-		return $this->htmlNode;
-	}
-
 	public function __toString() {
 		return sprintf("original: \"%s\", normalized: \"%s\", path: \"%s\"", $this->original, $this->path);
 	}
@@ -44,9 +36,4 @@ class MissingTranslation {
 	 * @var string
 	 */
 	private $path;
-
-	/**
-	 * @var DOMNode
-	 */
-	private $htmlNode;
 }

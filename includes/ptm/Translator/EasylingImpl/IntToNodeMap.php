@@ -26,4 +26,14 @@ class IntToNodeMap {
 	public function put($key, DOMNode $value) {
 		$this->map[$key] = $value;
 	}
+
+	public function putAll(IntToNodeMap $intToNodeMap) {
+		foreach ($intToNodeMap->map as $key=>$value) {
+			$this->put($key, $value);
+		}
+	}
+
+	public function clear() {
+		$this->map = array();
+	}
 }

@@ -88,7 +88,6 @@ class XMLSignatureBuilder
 		$isRoot = null;
 		$xml = self::getDocumentRoot($xml, $isRoot);
 		if (is_bool($xml)) {
-			$isRoot = false;
 			return $xml;
 		}
 
@@ -99,13 +98,12 @@ class XMLSignatureBuilder
 
 			if($id === null || strlen($id) <= 1)
 			{
-				$id = 4;
 				return false;
 			}
 
+			/** @var int $index */
 			$index = substr($id, 1);
 			if (!ctype_digit($index)) {
-				$index = 5;
 				return false;
 			}
 
@@ -118,7 +116,6 @@ class XMLSignatureBuilder
 			$this->count = Math::max($index+1, $this->count);
 		}
 
-		//for(Node n=xe.getFirstChild(); n != null; n = n.getNextSibling())
 		for ($n=$xe->firstChild;$n!=null;$n=$n->nextSibling)
 		{
 			if($n->nodeType == Node::ELEMENT_NODE)
@@ -129,18 +126,16 @@ class XMLSignatureBuilder
 				if($id != null)
 				{
 					if(!in_array($ne->nodeName, self::$validNodeNames) || strlen($id) <= 1) {
-						$id =7;
 						return false;
 					}
 
+					/** @var int $i */
 					$i = substr($id, 1);
 					if (!ctype_digit($i)) {
-						$i = 8;
 						return false;
 					}
 
 					if(isset($this->nodeTypes[$i])) {
-						$i = 4;
 						return false;
 					}
 
@@ -152,14 +147,12 @@ class XMLSignatureBuilder
 				else
 				{
 					if(in_array($ne->nodeName, self::$validNodeNames)) {
-						$i = 2;
 						return false;
 					}
 				}
 
 				/*boolean */ $result = $this->checkNode($n);
 				if(!$result) {
-					$result = false;
 					return false;
 				}
 			}
