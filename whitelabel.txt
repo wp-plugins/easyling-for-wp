@@ -1,5 +1,7 @@
 This file contains a step-by-step guide on branding the Easyling WordPress plugin.
 
+* Download the latest version of plugin from WordPress Plugin Directory: https://wordpress.org/plugins/easyling-for-wp/
+
 * Unpack the zip contents.
 
 * Change the following values in the first comment area of easyling.php (these values are shown in WordPress 'Plugins' list) to your liking.
