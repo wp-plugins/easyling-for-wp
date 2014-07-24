@@ -9,6 +9,8 @@ if ($easyling_instance == null) {
     require_once 'easyling.php';
 }
 
+$easyling_instance->removeRewriteRules();
+
 $ptm = $easyling_instance->getPtm();
 $ptm->uninstall();
 

@@ -3,7 +3,7 @@ Contributors: dvarga
 Tags: easyling, translation, multilanguage, website translation, wordpress translation, translation plugin
 Requires at least: 3.5
 Tested up to: 3.9.1
-Stable tag: 0.9.17
+Stable tag: 0.9.18
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -86,6 +86,9 @@ Whenever we hear about such a case, we jump on it and give a fix.
 2. Demonstrates how to "link" the WP Installation with Easyling Services
 
 == Changelog ==
+
+= 0.9.18 =
+* Added whitelabel support
 
 = 0.9.17 =
 * Implemented Easyling features: Group pages, Pattern matching, Ignore classes

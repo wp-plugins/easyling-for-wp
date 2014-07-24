@@ -1,5 +1,19 @@
-<div class="wrap">
-    <h2><img src="<?php echo EASYLING_URL ?>/images/easyling-logo.png" alt="Easyling Wordpress Plugin" /></h2>
+<?php
+/**
+ * @var Easyling_Settings $settings
+ * @var bool $linked
+ * @var string $productName
+ * @var string $productLogo
+ * @var Project[]|Map $projects
+ * @var string $language_selector
+ * @var string $pcode
+ * @var Easyling_ProjectLocalesSettings|Easyling_ProjectLocaleSettings[] $project_languages
+ * @var bool $md
+ * @var bool|null $consent
+ * @var bool $whitelabel
+ */
+?><div class="wrap">
+    <h2><img src="<?php echo $productLogo ?>" alt="<?php echo $productName ?> Wordpress Plugin" /></h2>
     <?php if (!empty($update_messages)):
         ?>
         <div class="updated" id="link-service">
@@ -14,25 +28,25 @@
     <?php endif; ?>
     <div class="metabox-holder">
         <form action="options.php" method="post" id="easyling_setting_form" name="easyling_setting_form">
-            <?php if ($easyling_status == Easyling::STATUS_INSTALLED): ?>
+            <?php if ($settings->getPluginSettings()->isInstalled()): ?>
                 <div class="postbox">
                     <div class="handlediv" title="Click to toggle"><br></div>
                     <h3><span>Linking Service</span></h3>
                     <div class="inside">
                         <p>
-                            By linking this Wordpress Installation to an Easyling Account and project
+                            By linking this Wordpress Installation to an <?php echo $productName ?> Account and project
                             you will be able to retrieve the translations.<br />
                             This is a necessary first step.
                         </p>
                         <p>
-                            <a class="button-secondary" href="?page=easyling&oauth_action=consumer_key_n_secret" title="Link Service">Link it!</a>
+                            <a class="button-secondary" href="<?php echo $this->get_plugin_admin_url('oauth_action=consumer_key_n_secret') ?>" title="Link Service">Link it!</a>
                         </p>
                     </div>
                 </div>
             <?php else: ?>
                 <div class="postbox">
                     <div class="handlediv" title="Click to toggle"><br></div>
-                    <h3><span>Easyling Projects</span></h3>
+                    <h3><span><?php echo $productName ?> Projects</span></h3>
                     <div class="inside">
                         <p>
                             You have got the following projects available to link with your Wordpress installation:
@@ -46,22 +60,21 @@
                                         <option value="">Please Select One</option>
                                         <?php foreach ($projects as $p): ?>
                                             <?php
-                                            $selected = get_option('easyling_linked_project') == $p->getProjectCode()
+
+                                            $selected = $settings->getLinkedProject() == $p->getProjectCode()
                                                     ? 'selected="selected"'
                                                     : '';
                                             ?>
                                             <option value="<?php echo $p->getProjectCode() ?>" <?php echo $selected; ?>><?php echo $p->getName() ?></option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <a href="<?php echo get_admin_url() ?>admin.php?page=easyling&oauth_action=updateprojectlist" class="button-secondary">Update Project List</a><br />
-                                    <span class="description">By linking the Wordpress Installation to an Easyling Project you will be able to display translated pages.</span>
+                                    <a href="<?php echo $this->get_plugin_admin_url('oauth_action=updateprojectlist') ?>" class="button-secondary">Update Project List</a><br />
+                                    <span class="description">By linking the Wordpress Installation to an <?php echo $productName ?> Project you will be able to display translated pages.</span>
                                 </td>
                             </tr>
                             <?php
                             if ($linked && $pcode !== false):
-                                $checked = $md['status'] == 'on'
-                                        ? 'checked="checked"'
-                                        : '';
+                                $checked = $md ? 'checked="checked"' : '';
                                 ?>
                                 <tr>
                                     <th scope="row">Multidomain Support</th>
@@ -74,13 +87,13 @@
                                         <span class="description">With Multidomain support you can use different domains to different languages. Such as: example.com and example.de for English and German versions.</span>
                                     </td>
                                 </tr>
-                                <?php if ($md == false || $md['status'] == 'off'): ?>
+                                <?php if (!$md): ?>
                                     <tr>
                                         <th scope="row">Available Locales</th>
                                         <td>
                                             <?php
-                                            foreach ($projects->get($pcode)->getProjectLanguages() as $k => $l):
-                                                $checked = (isset($project_languages[$l->getLanguageCode()]) && $project_languages[$l->getLanguageCode()]['used'] == 'on')
+                                            foreach ($projects[$pcode]->getProjectLanguages() as $k => $l):
+                                                $checked = (isset($project_languages[$l->getLanguageCode()]) && $project_languages[$l->getLanguageCode()]->isUsed())
                                                         ? 'checked="checked"'
                                                         : '';
                                                 ?>
@@ -89,8 +102,8 @@
                                                     <input type="checkbox" <?php echo $checked ?> name="easyling_project_languages[<?php echo $l->getLanguageCode() ?>][used]" />&nbsp;<?php echo $l->getLanguageCode() ?>
                                                 </label>
                                                 <?php
-                                                $input_value = (isset($project_languages[$l->getLanguageCode()]) && $project_languages[$l->getLanguageCode()]['used'] == 'on')
-                                                        ? $project_languages[$l->getLanguageCode()]['lngcode']
+                                                $input_value = (isset($project_languages[$l->getLanguageCode()]) && $project_languages[$l->getLanguageCode()]->isUsed())
+                                                        ? $project_languages[$l->getLanguageCode()]->getPathPrefix()
                                                         : substr($l->getLanguageCode(), 0, 2);
                                                 ?>
                                                 <input type="text" size="2" name="easyling_project_languages[<?php echo $l->getLanguageCode() ?>][lngcode]" value="<?php echo $input_value ?>" />
@@ -111,10 +124,10 @@
                                     <?php
                                 endif;
                             endif;
-                            if ($linked && ($pcode = get_option('easyling_linked_project', false)) !== false):
+                            if ($linked && $pcode):
                                 $used = false;
                                 foreach ($project_languages as $l):
-                                    if ($l['used'] == 'on') {
+                                    if ($l->isUsed()) {
                                         $used = true;
                                         break;
                                     }
@@ -140,7 +153,7 @@
                                     <tr>
                                         <th scope="row">Retrieving translations</th>
                                         <td>
-                                            <a class="button-secondary" href="?page=easyling&transfer=1" title="Retrieve translations">Retrieve translations</a><br />
+                                            <a class="button-secondary" href="<?php echo $this->get_plugin_admin_url('transfer=1') ?>" title="Retrieve translations">Retrieve translations</a><br />
                                             <span class="description">By clicking on this button you will start downloading the translations in the background from Easyling.</span>
                                         </td>
                                     </tr>
@@ -153,7 +166,7 @@
                     </div>
                 </div>
 
-                <?php if ($md && $md['status'] == 'on'): ?>
+                <?php if ($md): ?>
                     <div class="postbox">
                         <div class="handlediv" title="Click to toggle"><br></div>
                         <h3><span>Multidomain support</span></h3>
@@ -166,12 +179,10 @@
                                     <th scope="row">Linked Project</th>
                                     <td>
                                         <?php
-                                        foreach ($projects->get($pcode)->getProjectLanguages() as $l):
-                                            $checked = $project_languages[$l->getLanguageCode()]['used'] == 'on'
-                                                    ? 'checked="checked"'
-                                                    : '';
-                                            $val = $project_languages[$l->getLanguageCode()]['used'] == 'on' && $project_languages[$l->getLanguageCode()]['domain']
-                                                    ? $project_languages[$l->getLanguageCode()]['domain']
+                                        foreach ($projects[$pcode]->getProjectLanguages() as $l):
+                                            $checked = $project_languages[$l->getLanguageCode()]->isUsed() ? 'checked="checked"' : '';
+                                            $val = $project_languages[$l->getLanguageCode()]->isUsed() && $project_languages[$l->getLanguageCode()]->getDomain()
+                                                    ? $project_languages[$l->getLanguageCode()]->getDomain()
                                                     : '';
                                             ?>
                                             <input type="hidden" name="easyling_project_languages[<?php echo $l ?>][used]" value="off" />
@@ -179,7 +190,7 @@
                                                 <input type="checkbox" <?php echo $checked ?> name="easyling_project_languages[<?php echo $l ?>][used]" />&nbsp;<?php echo $l ?>
                                             </label>
                                             <span style="line-height: 19px;">Domain name (without http://):</span>
-                                            <input type="text" name="easyling_project_languages[<?php echo $l ?>][domain]" value="<?php echo $val ?>" onclick="javascript:this.value = '';" />
+                                            <input type="text" name="easyling_project_languages[<?php echo $l ?>][domain]" value="<?php echo $val ?>" />
                                             <span style="margin-left: 35px" id="easyling_project_dom_<?php echo $l ?>">Reachable on: <a href="http://<?php echo $val ?>" target="_easyling_preview"><?php echo 'http://'.$val ?>/</a></span>
                                             <br />
                                             <script type="text/javascript">
@@ -210,7 +221,7 @@
     </div>
     <?php if ($consent === null): ?>
         <div id="modal-consent" class="modal-content">
-            <h3>Please help us improve Easyling for Wordpress!</h3>
+            <h3>Please help us improve <?php echo $productName ?> for Wordpress!</h3>
             <p>We ask you to provide us with information in case something goes wrong.
                 We can do that automatically for you but we need your approval.</p>
             <p>By checking 'I will help', you agree that when something goes wrong
@@ -221,7 +232,7 @@
                 <li>stacktrace of the calling piece of code that caused the error</li>
             </ul>
             <p>We cannot use this data to harm you. We only send data to us that has something to do
-                with Easyling for Wordpress.</p>
+                with <?php echo $productName ?> for Wordpress.</p>
             <form action="options.php" method="post">
                 <?php settings_fields('easyling_consent'); ?>
                 <label style="width: 150px; display: inline-block; vertical-align: top; line-height: 19px;">I do not consent:</label>
@@ -263,13 +274,12 @@
 </script>
 
 <?php
-$option = get_option('easyling');
-if ($consent !== null && !$option['tutorial_shown']):
+if ($consent !== null && !$settings->getPluginSettings()->isTutorialShown() && !$whitelabel):
     ?>
     <div id="modal-tutorial" class="modal-content">
-        <div class="tutorial" style="background-image: url(<?php echo EASYLING_URL; ?>/images/tutorial.jpg);" >
-            <div class="nav-left"><img src="<?php echo EASYLING_URL ?>/images/left.png" /></div>
-            <div class="nav-right"><img src="<?php echo EASYLING_URL ?>/images/right.png" /></div>
+        <div class="tutorial" style="background-image: url(<?php echo EASYLING_URL; ?>images/tutorial.jpg);" >
+            <div class="nav-left"><img src="<?php echo EASYLING_URL ?>images/left.png" /></div>
+            <div class="nav-right"><img src="<?php echo EASYLING_URL ?>images/right.png" /></div>
         </div>
     </div>
     <script type="text/javascript">
@@ -357,7 +367,7 @@ if ($consent !== null && !$option['tutorial_shown']):
         })
     </script>
     <?php
-    $option['tutorial_shown'] = true;
-    update_option('easyling', $option);
+	$settings->getPluginSettings()->setTutorialShown(true);
+    $settings->savePluginSettings();
 endif;
 ?>

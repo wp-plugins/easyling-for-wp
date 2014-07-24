@@ -1,0 +1,18 @@
+This file contains a step-by-step guide on branding the Easyling WordPress plugin.
+
+* Unpack the zip contents.
+
+* Change the following values in the first comment area of easyling.php (these values are shown in WordPress 'Plugins' list) to your liking.
+** Plugin name - this should be globally unique, otherwise WordPress may offer updates for unrelated plugins!
+** Description
+** Plugin URI (e.g http://mytranslationproxy.com/)
+
+* Overwrite the following constants (marked by the 'define' statement at the start of the line) in the config.php (these values are shown within the plugin page) 
+** PRODUCT_NAME (e.g, My Translation Proxy)
+** PRODUCT_LOGO_URL (e.g http://mytranslationproxy.com/logo.png)
+** TRANSLATION_PROXY_ENDPOINT (e.g http://app.mytranslationproxy.com/_el/ext/ , where the app.mytranslationproxy.com domain points to your branded Easyling version)
+
+* On the following line in config.php, change the 'false' value to 'true' (as below), to hide the tutorial popup.
+define ('WHITELABELED', true);
+
+* Repack the whole directory tree into 1 zip file - aside from leaving this file out of the new zip, everything else should be present. As this will be the directory name in WordPress plugin directory (e.g mytranslationproxy), the name of zip file should be unique, and should not contain spaces (can be substituted by an underscore), nor any special characters!

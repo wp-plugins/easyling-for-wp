@@ -15,3 +15,4 @@ if (version_compare(PHP_VERSION, '5.2.0', '<')) {
 require_once dirname(__FILE__) . '/DOMUtil.php';
 require_once dirname(__FILE__) . '/SerializeUtil.php';
 require_once dirname(__FILE__) . '/HTTPHeader.php';
+require_once dirname(__FILE__) . '/Locale.php';

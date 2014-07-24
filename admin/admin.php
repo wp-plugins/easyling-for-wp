@@ -1,6 +1,6 @@
 <?php
 
-include_once(WP_PLUGIN_DIR . '/easyling-for-wp/config.php');
+include_once(dirname(__FILE__). '/../config.php');
 
 /**
  * Easyling_Admin class is responsible for rendering, displaying and managing
@@ -14,7 +14,8 @@ class Easyling_Admin {
 
     const OAUTH_CREATEIDENT = "ptm/createIdentity";
     const OAUTH_REQUESTTOKEN = "oauth/getRequestToken";
-    const DEFAULT_EASYLING_ENDPOINT = "http://app.easyling.com/_el/ext/";
+    const DEFAULT_TRANSLATION_PROXY_ENDPOINT = "http://app.easyling.com/_el/ext/";
+	const IN_URL_NAME = 'translationproxy';
 
     /**
      * Easyling Instance
@@ -22,13 +23,23 @@ class Easyling_Admin {
      */
     private $easylingInstance;
     private $updateNotices = array();
+	/** @var  PTM $ptm */
+	private $ptm;
 
-    public function __construct($easylingInstance) {
+	/** @var  Easyling_Settings $settings */
+	private $settings;
+
+	/**
+	 * @param Easyling $easylingInstance
+	 */
+	public function __construct($easylingInstance) {
         $this->easylingInstance = $easylingInstance;
-        if (defined('EASYLING_ENDPOINT')) {
-            $this->_oauth_endpoint = EASYLING_ENDPOINT;
+	    $this->ptm = $easylingInstance->getPtm();
+		$this->settings = $easylingInstance->getSettings();
+        if (defined('TRANSLATION_PROXY_ENDPOINT')) {
+            $this->_oauth_endpoint = TRANSLATION_PROXY_ENDPOINT;
         } else {
-            $this->_oauth_endpoint = self::DEFAULT_EASYLING_ENDPOINT;
+            $this->_oauth_endpoint = self::DEFAULT_TRANSLATION_PROXY_ENDPOINT;
         }
 
         add_action('admin_menu', array(&$this, 'admin_menu_hook'));
@@ -40,13 +51,13 @@ class Easyling_Admin {
         // register plugin update stuff
         add_action('admin_init', array($this, 'run_plugin_update_callbacks'));
 
-        if (!session_id())
+	    if (!session_id())
             session_start();
 
         // access token is valid for a while, let's load it as an option
-        $access_tokens = get_option('easyling_access_tokens', false);
-        if ($access_tokens !== false) {
-            $_SESSION['oauth'] = $access_tokens;
+        $access_tokens = $this->settings->getOAuthAccessToken();
+        if ($access_tokens != null) {
+            $_SESSION['oauth'] = $access_tokens->getAsArray();
         }
 
         // set the internal redirect
@@ -56,10 +67,11 @@ class Easyling_Admin {
         // start transfer
         if (isset($_REQUEST['transfer'])) {
 
-            require_once EASYLING_PATH . '/includes/OAuth/OAuth.php';
+	        /** @noinspection PhpIncludeInspection */
+            require_once EASYLING_PATH . 'includes/OAuth/OAuth.php';
             // check if we have access token
             if (!isset($_SESSION['oauth']['access_token'])) {
-                $_SESSION['oauth_internal_redirect'] = get_admin_url(null, 'admin.php?page=easyling&transfer=1', 'admin');
+                $_SESSION['oauth_internal_redirect'] = $this->get_plugin_admin_url('transfer=1');
                 $this->oauth_authorization();
                 die();
             }
@@ -68,7 +80,7 @@ class Easyling_Admin {
             $oauthServer = $this->_oauth_endpoint;
             $endpoint = $oauthServer . 'ptm/startTransfer';
 
-            $linked_project = get_option('easyling_linked_project');
+            $linked_project = $this->settings->getLinkedProject();
             $project = $this->easylingInstance->getPtm()->getFrameworkService()->getProjectByCode($linked_project);
             $lang = $project->getProjectLanguageArray();
 
@@ -80,34 +92,38 @@ class Easyling_Admin {
                     $params = array(
                         'projectCode'    => $project->getProjectCode(),
                         'targetLanguage' => $l,
-                        'callback'       => get_site_url() . "/wp-admin/admin-ajax.php?action=easyling_oauth_push&projectCode={$project->getProjectCode()}&targetLanguage={$l}"
+                        'callback'       => get_site_url() . "/wp-admin/admin-ajax.php?action=".self::IN_URL_NAME."_oauth_push&projectCode={$project->getProjectCode()}&targetLanguage={$l}"
                     );
-                    extract(get_option('easyling_id'));
-                    $consumer = new ELOAuthConsumer($consumer_key, $consumer_secret, NULL);
+                    $consumer = $this->getStoredOAuthConsumer();
                     $token = new ELOAuthToken($_SESSION['oauth']['access_token'], $_SESSION['oauth']['access_token_secret']);
                     $req = ELOAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
                     $req->sign_request($hmac_method, $consumer, $token);
                     $res = $req->curlit($req->to_url());
-                    $this->checkOAuthInvalidToken($res, 'admin.php?page=easyling&transfer=1');
+                    $this->checkOAuthInvalidToken($res, 'transfer=1');
                     $this->easylingInstance->getPtm()->getFrameworkService()->setProjectAttributesByELResponse($project, $res['response']);
                 }
             } catch (Exception $e) {
-                $this->easylingInstance->getPtm()->sendErrorReport($e, PTMException::LEVEL_ERROR, array('method:'       => 'startTransfer', 'oauth_request' => $req, 'oauth_resp'    => $res));
+                $this->easylingInstance->getPtm()->sendErrorReport($e, PTMException::LEVEL_ERROR,
+	                array(
+		                'method:'=> 'startTransfer',
+		                'oauth_request' => $req,
+		                'oauth_resp' => $res));
             }
-            header('Location: ' . get_admin_url() . 'admin.php?page=easyling');
+            header('Location: ' . $this->get_plugin_admin_url());
         } else {
             $this->oauth_action();
         }
     }
 
-    public function checkOAuthInvalidToken($oauthResponse, $redirectPath) {
+    public function checkOAuthInvalidToken($oauthResponse, $redirectParams) {
+
         if ($oauthResponse['code'] == 400 || $oauthResponse['code'] == 500) {
             $rawResponse = $oauthResponse['response'];
             $response = @json_decode($rawResponse, true);
 
             if ($response != null && isset($response['error'])) {
                 if ($response['mnemonic'] == "invalidToken") {
-                    $_SESSION['oauth_internal_redirect'] = get_admin_url(null, $redirectPath, 'admin');
+                    $_SESSION['oauth_internal_redirect'] = $this->get_plugin_admin_url($redirectParams);
                     $this->oauth_authorization();
                     die();
                 }
@@ -135,18 +151,18 @@ class Easyling_Admin {
 	        // PTM put this option
             delete_option('easyling_availableProjects');
 
-            // set the status
-            $optEasyling = get_option('easyling');
-	        //$optEasyling['']
-            $optEasyling['status'] = Easyling::STATUS_INSTALLED;
-            update_option('easyling', $optEasyling);
-            header("Location: " . get_admin_url(null, 'admin.php?page=easyling', 'admin'));
+            // reset the plugin status
+	        $ps = $this->settings->getPluginSettings();
+	        $ps->setStatus(Easyling_PluginSettings::STATUS_INSTALLED);
+	        $this->settings->savePluginSettings();
+            header("Location: " . $this->get_plugin_admin_url());
             die();
         }
         if (isset($_REQUEST['oauth_action'])) {
             try {
                 if (is_callable(array(&$this, "oauth_" . $_REQUEST['oauth_action']))) {
-                    require_once EASYLING_PATH . '/includes/OAuth/OAuth.php';
+	                /** @noinspection PhpIncludeInspection */
+	                require_once EASYLING_PATH . 'includes/OAuth/OAuth.php';
                     call_user_func(array(&$this, "oauth_" . $_REQUEST['oauth_action']));
                 } else {
                     throw new Exception("OAuth method not found:" . $_REQUEST['oauth_action']);
@@ -157,9 +173,9 @@ class Easyling_Admin {
         }
     }
 
-    public function oauth_consumer_key_n_secret() {
-        if (get_option('easyling_id', false)) {
-            header('Location: ' . get_admin_url(null, '', 'admin') . 'admin.php?page=easyling&oauth_action=authorization');
+	public function oauth_consumer_key_n_secret() {
+        if ($this->settings->getOAuthId(true) !== null) {
+            header('Location: ' . $this->get_plugin_admin_url('oauth_action=authorization'));
             die();
         }
 
@@ -175,11 +191,8 @@ class Easyling_Admin {
                 if (isset($response['response']['identity']) && isset($response['response']['identity']['consumerKey'])) {
                     $key = $response['response']['identity']['consumerKey'];
                     $secret = $response['response']['identity']['consumerSecret'];
-                    update_option('easyling_id', array(
-                        'consumer_key'    => $key,
-                        'consumer_secret' => $secret
-                    ));
-                    header('Location: ' . get_admin_url(null, '', 'admin') . 'admin.php?page=easyling&oauth_action=authorization');
+	                $this->settings->saveOAuthId(new Easyling_OAuthSettings($key, $secret));
+                    header('Location: ' . $this->get_plugin_admin_url('oauth_action=authorization'));
                     die();
                 } else {
                     throw new Exception("Error occured while getting identity");
@@ -192,19 +205,41 @@ class Easyling_Admin {
         }
     }
 
+	public function get_plugin_admin_url($query_params = null) {
+		$path = 'admin.php?page='.self::IN_URL_NAME;
+		if (is_string($query_params)) {
+			if (isset($query_params[0]) && $query_params[0] != "&") {
+				$path .= "&";
+			}
+			$path .= $query_params;
+
+		}
+		else if (is_array($query_params)) {
+			foreach ($query_params as $name=>$value) {
+				$path .= "&".urlencode($name)."=".urlencode($value);
+			}
+		}
+
+		return get_admin_url(null, $path, 'admin');
+	}
+
+	public function getStoredOAuthConsumer() {
+		$oauthSettings = $this->settings->getOAuthId();
+		return new ELOAuthConsumer($oauthSettings->getKey(), $oauthSettings->getSecret(), NULL);
+	}
+
     public function oauth_authorization() {
         $hmac_method = new ELOAuthSignatureMethod_HMAC_SHA1();
         $oauthServer = $this->_oauth_endpoint;
         $endpoint = $oauthServer . self::OAUTH_REQUESTTOKEN;
         $params = array(
-            'oauth_callback' => get_admin_url(null, 'admin.php?page=easyling&oauth_action=accesstoken', 'admin')
+            'oauth_callback' => $this->get_plugin_admin_url('oauth_action=accesstoken')
         );
-        extract(get_option('easyling_id'));
 
-        $consumer = new ELOAuthConsumer($consumer_key, $consumer_secret, NULL);
+	    $consumer = $this->getStoredOAuthConsumer();
         $req = ELOAuthRequest::from_consumer_and_token($consumer, NULL, "GET", $endpoint, $params);
         $req->sign_request($hmac_method, $consumer, NULL);
-        $res = $req->curlit($req->to_url());
+        $req->curlit($req->to_url());
         try {
             if ($req->response['code'] == 200) {
                 $response = $req->extract_params($req->response['response']);
@@ -228,8 +263,7 @@ class Easyling_Admin {
 //        'oauth_token' => $_REQUEST['oauth_token']
         );
         $oauthToken = $_REQUEST['oauth_token'];
-        extract(get_option('easyling_id'));
-        $consumer = new ELOAuthConsumer($consumer_key, $consumer_secret, NULL);
+        $consumer = $this->getStoredOAuthConsumer();
         $token = new ELOAuthToken($oauthToken, $_SESSION['oauth_token_secret']);
         $req = ELOAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
         $req->sign_request($hmac_method, $consumer, $token);
@@ -241,19 +275,20 @@ class Easyling_Admin {
                 $accessToken = $response['oauth_token'];
                 $accessTokenSecret = $response['oauth_token_secret'];
                 unset($_SESSION['oauth']);
+
                 $_SESSION['oauth']['access_token'] = $accessToken;
                 $_SESSION['oauth']['access_token_secret'] = $accessTokenSecret;
+
                 // update easyling options
-                update_option('easyling_access_tokens', array(
-                    'access_token'        => $accessToken,
-                    'access_token_secret' => $accessTokenSecret
-                ));
+	            $accessTokenSettings = new Easyling_OAuthAccessTokenSettings($accessToken, $accessTokenSecret);
+	            $this->settings->saveOAuthAccessToken($accessTokenSettings);
+
                 if ($this->_redirURL !== null) {
                     unset($_SESSION['oauth_internal_redirect']);
                     header('Location: ' . $this->_redirURL);
                 }
                 else
-                    header('Location: ' . get_admin_url(null, '', 'admin') . 'admin.php?page=easyling&oauth_action=retrieveprojects');
+                    header('Location: ' . $this->getRetrieveProjectsURL());
             } else {
                 throw new Exception("Could not retrieve Access Token - " . $answer['message']);
             }
@@ -262,11 +297,15 @@ class Easyling_Admin {
         }
     }
 
+	public function getRetrieveProjectsURL() {
+		return $this->get_plugin_admin_url('oauth_action=retrieveprojects');
+	}
+
     public function oauth_retrieveprojects() {
         // check if we have access_token
         if (!isset($_SESSION['oauth']['access_token'])) {
             // try to
-            $_SESSION['oauth_internal_redirect'] = get_admin_url(null, 'admin.php?page=easyling&oauth_action=retrieveprojects', 'admin');
+            $_SESSION['oauth_internal_redirect'] = $this->getRetrieveProjectsURL();
             $this->oauth_authorization();
             die();
         }
@@ -275,8 +314,7 @@ class Easyling_Admin {
         $endpoint = $oauthServer . 'ptm/projectList';
         $params = array(
         );
-        extract(get_option('easyling_id'));
-        $consumer = new ELOAuthConsumer($consumer_key, $consumer_secret, NULL);
+        $consumer = $this->getStoredOAuthConsumer();
         $token = new ELOAuthToken($_SESSION['oauth']['access_token'], $_SESSION['oauth']['access_token_secret']);
         $req = ELOAuthRequest::from_consumer_and_token($consumer, $token, "GET", $endpoint, $params);
         $req->sign_request($hmac_method, $consumer, $token);
@@ -286,7 +324,7 @@ class Easyling_Admin {
 	    $usedProjects = new Map();
 
         try {
-            $this->checkOAuthInvalidToken($res, 'admin.php?page=easyling&oauth_action=retrieveprojects');
+            $this->checkOAuthInvalidToken($res, 'oauth_action=retrieveprojects');
             if ($res['code'] == 200) {
                 $decoded = json_decode($res['response'], true);
                 foreach ($decoded['response']['projects'] as $p) {
@@ -317,13 +355,13 @@ class Easyling_Admin {
                         }
                         $project = new Project($p['name'], $p['code'], $languages);
                         $ptmService->addAvailableProject($project);
-                        $projectSourceLangs = get_option('easyling_source_langs', array());
-                        $mergedProjectSourceLangs = array_merge($projectSourceLangs, array($p['code'] => $p['sourceLanguage']));
-                        update_option('easyling_source_langs', $mergedProjectSourceLangs);
+                        $projectSourceLocales = $this->settings->getSourceLocales();
+	                    $projectSourceLocales[$p['code']] = new PTMLocale($p['sourceLanguage']);
+	                    $this->settings->saveSourceLocales($projectSourceLocales);
                         // save project
                     } elseif ($resLang['code'] == 403) {
                         // no access to the project - ask for it
-                        $_SESSION['oauth_internal_redirect'] = get_admin_url(null, 'admin.php?page=easyling&oauth_action=retrieveprojects', 'admin');
+                        $_SESSION['oauth_internal_redirect'] = $this->getRetrieveProjectsURL();
                         $this->oauth_authorization();
                         $this->easylingInstance->getPtm()->sendErrorReport(new Exception('403 from server for request: languageList'), PTMException::LEVEL_NOTICE, array_merge($_SESSION, $req->response));
                     } else {
@@ -339,7 +377,7 @@ class Easyling_Admin {
 
 		            if (!isset($usedProjects[$stProjectCode])) {
 			            // do not delete the currently linked project
-			            if (get_option('easyling_linked_project', null) == $stProjectCode ) {
+			            if ($this->settings->getLinkedProject() == $stProjectCode ) {
 				            // TODO: display error message
 			            } else {
 			                $ptmService->removeAvailableProjectByCode($stProjectCode);
@@ -349,10 +387,10 @@ class Easyling_Admin {
 
                 // by now we should have all languages and also all languages
                 // set the status
-                $optEasyling = get_option('easyling');
-                $optEasyling['status'] = Easyling::STATUS_AUTHED;
-                update_option('easyling', $optEasyling);
-                header('Location: ' . get_admin_url(null, '', 'admin') . 'admin.php?page=easyling');
+	            $ps = $this->settings->getPluginSettings();
+	            $ps->setStatus(Easyling_PluginSettings::STATUS_AUTHED);
+	            $this->settings->savePluginSettings();
+                header('Location: ' . $this->get_plugin_admin_url());
             } else {
                 throw new Exception('Could not access restricted OAuth resource');
             }
@@ -371,41 +409,45 @@ class Easyling_Admin {
     }
 
     public function admin_notices() {
-        if (false !== strpos($_SERVER['QUERY_STRING'], 'page=easyling'))
+        if (false !== strpos($_SERVER['QUERY_STRING'], 'page='.self::IN_URL_NAME))
             return;
         if (!current_user_can('manage_options'))
             return;
 
-
-        echo $this->renderTemplate('notice_activation', $this->updateNotices);
+	    $templateVars = $this->updateNotices;
+	    $templateVars['admin'] = $this;
+	    $templateVars['settings'] = $this->settings;
+	    $templateVars['productName'] = PRODUCT_NAME;
+	    $templateVars['whitelabel'] = defined('WHITELABELED') && WHITELABELED;
+        echo $this->renderTemplate('notice_activation', $templateVars);
     }
 
-    /**
-     * Runs the update callback functions
-     *
-     * @param array $opt_easyling
-     * @param array $updates
-     */
+	/**
+	 * Runs the update callback functions
+	 *
+	 * @internal param array $opt_easyling
+	 * @internal param array $updates
+	 */
     public function run_plugin_update_callbacks() {
 
-        $opt_easyling = get_option('easyling');
-        $updates = isset($opt_easyling['updates'])
-                ? $opt_easyling['updates']
-                : null;
+	    $pluginSettings = $this->settings->getPluginSettings();
+
+        $updates = $pluginSettings->getUpdateArray();
 
         $vars = array('messages' => array());
         if (!empty($updates)) {
-            foreach ($updates as $k => $update) {
+            foreach ($updates as $update) {
                 $vars['messages'][] = $update['message'];
             }
             $this->updateNotices = $vars;
 
             // make sure to set the update messages as shown
             foreach ($updates as $k => $update) {
-                $update['acted_upon'] = true;
-                $opt_easyling['updates'][$k] = $update;
-                $opt_easyling = call_user_func_array(array($this->easylingInstance, $update['callback']), array($opt_easyling));
-                update_option('easyling', $opt_easyling);
+	            $pluginSettings->setUpdateActedUpon($k);
+	            $callback = $update['callback'];
+	            if ($callback != null)
+                    call_user_func_array(array($this->easylingInstance, $callback), array($pluginSettings));
+                $this->settings->savePluginSettings();
             }
         }
     }
@@ -416,19 +458,17 @@ class Easyling_Admin {
         register_setting('easyling_linking', 'easyling_multidomain');
         register_setting('easyling_linking', 'easyling_language_selector');
         register_setting('easyling_consent', 'easyling_consent');
-        wp_register_style('modal-basic', EASYLING_URL . '/admin/css/basic.css');
+        wp_register_style('modal-basic', EASYLING_URL . 'admin/css/basic.css');
         wp_enqueue_style('modal-basic');
-        wp_register_script('simplemodal', EASYLING_URL . '/admin/js/jquery.simplemodal.js', array('jquery'));
+        wp_register_script('simplemodal', EASYLING_URL . 'admin/js/jquery.simplemodal.js', array('jquery'));
         wp_enqueue_script('simplemodal');
-
-//        register_setting('easyling_settings', 'option_etc');
     }
 
     /**
      * Hook ran on admin_menu action
      */
     public function admin_menu_hook() {
-        $this->_page_suffix_easyling = add_menu_page('Easyling', 'Easyling', 'manage_options', 'easyling', array(&$this, 'admin_menu_page'));
+        $this->_page_suffix_easyling = add_menu_page(PRODUCT_NAME, PRODUCT_NAME, 'manage_options', self::IN_URL_NAME, array(&$this, 'admin_menu_page'));
         // when it loads add the help tabs to this page
         add_action("load-{$this->_page_suffix_easyling}", array(&$this, 'admin_contextual_help_tabs_easyling'));
     }
@@ -439,60 +479,63 @@ class Easyling_Admin {
     public function admin_menu_page() {
         $ptm = $this->easylingInstance->getPTM();
         $projects = $ptm->getFrameworkService()->getAvailableProjects();
-//        $locale = get_option('easyling_available_locales', array());
-        $project_languages = get_option('easyling_project_languages', array());
-        $language_selector = get_option('easyling_language_selector', 'off');
-        $linked = get_option('easyling_linked_project', false);
-        $optEasyling = get_option('easyling');
+
+        $language_selector = $this->settings->isLanguageSelector();
+        $linked = $this->settings->getLinkedProject();
+
+	    $pluginSettings = $this->settings->getPluginSettings();
 
         // see if we have the user's consent to report errors to us automatically
-        $consent = get_option('easyling_consent', null);
+        $consent = $this->settings->isSendConsent();
 
-        if (!$linked || empty($linked))
-            $linked = false;
-        else
-            $linked = true;
-        if (!is_array($project_languages)) {
-            $project_languages = array();
-        }
+        $linked = $linked == null ? false: true;
+
         echo $this->renderTemplate('easyling', array(
             'projects'          => $projects,
-//            'locale' => $locale,
-            'project_languages' => $project_languages,
+	        'admin'             => $this,
+            'project_languages' => $this->settings->getProjectLocales(),
             'linked'            => $linked,
-            'md'                => get_option('easyling_multidomain', false),
-            'pcode'             => get_option('easyling_linked_project', false),
-            'easyling_status'   => $optEasyling['status'],
+            'md'                => $this->settings->isMultiDomain(),
+            'pcode'             => $this->settings->getLinkedProject(),
             'consent'           => $consent,
-            'language_selector' => $language_selector,
-            'update_messages'   => isset($optEasyling['updates'])
-                    ? $optEasyling['updates']
-                    : null));
+            'language_selector' => $language_selector?'on':'off',
+	        'productName'       => PRODUCT_NAME,
+	        'productLogo'       => PRODUCT_LOGO_URL,
+	        'settings'          => $this->settings,
+            'update_messages'   => $pluginSettings->getUpdateArray(),
+		    'whitelabel'        => defined('WHITELABELED') && WHITELABELED
+        )
+	    );
     }
 
     public function admin_contextual_help_tabs_easyling() {
         $screen = get_current_screen();
         if ($screen->id == $this->_page_suffix_easyling) {
+
+	        $this->easylingInstance->on_admin_save_changes();
+
             // remove overview tab
             $screen->remove_help_tabs();
             // add general tab
             $screen->add_help_tab(array(
                 'id'      => 'help_easyling_test',
-                'title'   => 'Easyling for Wordpress',
+                'title'   => PRODUCT_NAME.' for Wordpress',
                 'content' => $this->renderTemplate('help_intro')
             ));
         }
     }
 
-    /**
-     * Very simple way to separate business logic froma templates...
-     * @param string $template template name
-     * @param array $templateVars assoc array
-     */
+	/**
+	 * Very simple way to separate business logic froma templates...
+	 * @param string $template template name
+	 * @param array $templateVars assoc array
+	 * @return string
+	 */
     protected function renderTemplate($template, array $templateVars = array()) {
         ob_start();
         extract($templateVars, EXTR_SKIP);
-        require_once EASYLING_PATH . '/admin/templates/' . $template . '.php';
+	    /** @noinspection PhpIncludeInspection */
+	    require_once EASYLING_PATH . 'admin/templates/' . $template . '.php';
         return ob_get_clean();
     }
 
