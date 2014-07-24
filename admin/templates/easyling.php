@@ -13,7 +13,7 @@
  * @var bool $whitelabel
  */
 ?><div class="wrap">
-    <h2><img src="<?php echo $productLogo ?>" alt="<?php echo $productName ?> Wordpress Plugin" /></h2>
+    <h2><img style="max-height: 75px" src="<?php echo $productLogo ?>" alt="<?php echo $productName ?> Wordpress Plugin" /></h2>
     <?php if (!empty($update_messages)):
         ?>
         <div class="updated" id="link-service">
