@@ -11,6 +11,7 @@
  * @var bool $md
  * @var bool|null $consent
  * @var bool $whitelabel
+ * @var string $linkErrorMessage
  */
 ?><div class="wrap">
     <h2><img style="max-height: 75px" src="<?php echo $productLogo ?>" alt="<?php echo $productName ?> Wordpress Plugin" /></h2>
@@ -23,6 +24,16 @@
                     echo $msg['message'];
                 endforeach;
                 ?>
+            </p>
+        </div>
+    <?php endif; ?>
+    <?php if ($linkErrorMessage): ?>
+        <div id="message" class="error">
+            <p>
+                <?php echo $linkErrorMessage ?>
+                <?php if ($this->settings->isSendConsent()): ?>
+                    <br>A report has been sent to the developers.
+                <?php endif; ?>
             </p>
         </div>
     <?php endif; ?>

@@ -14,7 +14,7 @@ class Easyling_Admin {
 
     const OAUTH_CREATEIDENT = "ptm/createIdentity";
     const OAUTH_REQUESTTOKEN = "oauth/getRequestToken";
-    const DEFAULT_TRANSLATION_PROXY_ENDPOINT = "http://app.easyling.com/_el/ext/";
+    const DEFAULT_TRANSLATION_PROXY_ENDPOINT = "https://app.easyling.com/_el/ext/";
 	const IN_URL_NAME = 'translationproxy';
 
     /**
@@ -28,6 +28,9 @@ class Easyling_Admin {
 
 	/** @var  Easyling_Settings $settings */
 	private $settings;
+
+    /** @var  string */
+    private $linkErrorMessage;
 
 	/**
 	 * @param Easyling $easylingInstance
@@ -197,8 +200,18 @@ class Easyling_Admin {
                 } else {
                     throw new Exception("Error occured while getting identity");
                 }
+            } else if ($res['code'] != 0) {
+                $this->linkErrorMessage = "HTTP Error ".$res['code'];
+                throw new Exception('Error while trying to get identity');
             } else {
-                throw new Exception('Error while trying to get identity for blog');
+                if ($res['errno'] != 0) {
+                    if ($res['errno'] == 35) {
+                        $this->linkErrorMessage = "SSL Error: no HTTPS channel could be created, please enable SSL or TLS on your Wordpress installation";
+                    } else {
+                        $this->linkErrorMessage = "General network error: ".$res['error'];
+                    }
+                    throw new Exception('Error while trying to get identity');
+                }
             }
         } catch (Exception $e) {
             $this->easylingInstance->getPtm()->sendErrorReport($e, PTMException::LEVEL_ERROR, array_merge($_SESSION, $req->response));
@@ -503,7 +516,8 @@ class Easyling_Admin {
 	        'productLogo'       => PRODUCT_LOGO_URL,
 	        'settings'          => $this->settings,
             'update_messages'   => $pluginSettings->getUpdateArray(),
-		    'whitelabel'        => defined('WHITELABELED') && WHITELABELED
+		    'whitelabel'        => defined('WHITELABELED') && WHITELABELED,
+            'linkErrorMessage'  => $this->linkErrorMessage
         )
 	    );
     }
