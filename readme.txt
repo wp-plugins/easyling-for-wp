@@ -2,8 +2,8 @@
 Contributors: dvarga
 Tags: easyling, translation, multilanguage, website translation, wordpress translation, translation plugin
 Requires at least: 3.5
-Tested up to: 3.9.1
-Stable tag: 0.9.20
+Tested up to: 4.1
+Stable tag: 0.9.21
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -56,29 +56,29 @@ functionality before activating it on a production website.
 
 = Is the Easyling for Wordpress Plugin free to use? =
 
-Yes, 100% free. [Easyling.com Website Translation](http://www.easyling.com/website-owners/prices?utm_source=easyling-wp-plugin-admin&utm_medium=admin-link&utm_campaign=easyling-wp "") also has got a free plan. 
+Yes, 100% free. [Easyling.com Website Translation](http://www.easyling.com/pricing/?utm_source=easyling-wp-plugin-admin&utm_medium=admin-link&utm_campaign=easyling-wp "") also has got a free plan.
 
-= Will it work with my (XXXXX) theme? =
+= Will it work with my theme? =
 
 Yes. By design, it doesn't matter what theme do you use. 
 
-= Do I need to have an Easyling registration? =
+= Do I need to set up an account with Easyling? =
 
-Yes! The Plugin is not worth much without an Easyling account. You can create one by visiting [Easyling](http://www.easyling.com/website-owners/?utm_source=easyling-wp-plugin-admin&utm_medium=admin-link&utm_campaign=easyling-wp "")
+Yes! The Plugin is not worth much without an Easyling account. You can create one by visiting [Easyling](https://app.easyling.com/login/frame/reg "")
 
 = What is that "linking" and how do I do that? =
 
-It is necessary to "link" your WP Installation with Easyling services so that the plugin can download the translation from the application in the cloud.
+It is necessary to "link" your WP Installation with Easyling so the plugin can download the translations from the Easyling application in the cloud.
 
 = How do I import the translations? =
 
-Once you have an Easyling account and you get some translations done, go the Easyling menu on your Wordpress admin
-and simply click `Retrieve Translations`. The process may take up to a few minutes, but it's safe to close the browser, it happens in the background.
+Once you have an Easyling account and you get some translations done, navigate to the Easyling menu on your WordPress admin and simply click
+Retrieve Translations. The process may take up to a few minutes, but it's safe to close the browser, it happens in the background.
 
 = Is it stable for production use? =
 
-We would like to think so, however there could be certain edge cases when the working of the plugin is not 100%!
-Whenever we hear about such a case, we jump on it and give a fix.
+To date it has been tested with a standard WordPress 4.1 installation running Apache and MySQL on Ubuntu server, however there could be
+certain edge cases when the plugin is not 100% functional! If you happen to stumble upon such issue, just give us feedback and we’ll be happy to fix it.
 
 == Screenshots ==
 

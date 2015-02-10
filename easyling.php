@@ -3,7 +3,7 @@
 /*
   Plugin Name: Easyling for Wordpress
   Description: Easyling is a Website translation tool, suitable for DIY work.
-  Version: 0.9.20
+  Version: 0.9.21
   Plugin URI: http://easyling.com
  */
 
