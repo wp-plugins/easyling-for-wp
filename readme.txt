@@ -2,8 +2,8 @@
 Contributors: dvarga
 Tags: easyling, translation, multilanguage, website translation, wordpress translation, translation plugin
 Requires at least: 3.5
-Tested up to: 4.1
-Stable tag: 0.9.21
+Tested up to: 4.1.1
+Stable tag: 0.9.22
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -86,6 +86,12 @@ certain edge cases when the plugin is not 100% functional! If you happen to stum
 2. Demonstrates how to "link" the WP Installation with Easyling Services
 
 == Changelog ==
+
+= 0.9.22 =
+* Works with php.ini settings display_errors = on
+
+= 0.9.21 =
+* Small fixes
 
 = 0.9.20 =
 * Added feedback to user, when error occurred during the linking

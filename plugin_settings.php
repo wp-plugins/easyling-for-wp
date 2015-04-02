@@ -53,7 +53,7 @@ class Easyling_Settings {
 		if ($md === null)
 			return false;
 
-		return $md['status'] == 'on';
+		return @$md['status'] == 'on';
 	}
 
 	/**
@@ -82,7 +82,7 @@ class Easyling_Settings {
 	 */
 	public function isLanguageSelector() {
 		$ls = $this->getOption(self::LANGUAGE_SELECTOR);
-		return $ls == "on";
+		return @$ls == "on";
 	}
 
 	/**

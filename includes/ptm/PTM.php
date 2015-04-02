@@ -20,7 +20,7 @@ require_once dirname(__FILE__) . '/PTMClientService.php';
 class PTM
 {
 	const EASYLING_HOST = null; // don't override EasylingService constants
-	const ERROR_REPORTING_URL = "http://plugintest.skawa.hu/plugin-error-report.php";
+	const ERROR_REPORTING_URL = "https://www.easyling.com/_el/plugin-error-report.php";
 
 	private $invalidAttributeNames = array("\"","#\"");
 
@@ -255,7 +255,7 @@ class PTM
 
 		$context  = stream_context_create($opts);
 
-		return file_get_contents(self::ERROR_REPORTING_URL, false, $context);
+		return @file_get_contents(self::ERROR_REPORTING_URL, false, $context);
 	}
 
 	/**

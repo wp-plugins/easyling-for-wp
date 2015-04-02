@@ -253,7 +253,7 @@ class Easyling_MultiDomainContext extends Easyling_TranslationContext {
 	public function getURLForTargetLocale($localeSettings) {
 		// target locale
 		if ($localeSettings != null) {
-			return ($_SERVER['HTTPS'] ? 'https://' : 'http://') . $localeSettings->getDomain() . $this->sourceURI;
+			return (@$_SERVER['HTTPS'] ? 'https://' : 'http://') . $localeSettings->getDomain() . $this->sourceURI;
 		} else {
 			return $this->getCanonicalURL() . $this->sourceURI;
 		}

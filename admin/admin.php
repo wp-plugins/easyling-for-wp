@@ -283,7 +283,7 @@ class Easyling_Admin {
         $res = $req->curlit($req->to_url());
         $answer = $req->extract_params($res['response']);
         try {
-            if ($req->response['code'] == 200 && $answer['status'] != 'error') {
+            if ($req->response['code'] == 200 && @$answer['status'] != 'error') {
                 $response = $req->extract_params($req->response['response']);
                 $accessToken = $response['oauth_token'];
                 $accessTokenSecret = $response['oauth_token_secret'];
